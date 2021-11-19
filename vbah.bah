@@ -1,0 +1,27 @@
+#include "iostream.bah"
+#include "<GL/gl.h>"
+#include "<GL/glut.h>"
+
+#cLib "lGL" "lglut"
+
+
+#define! glClearColor(r float, g float, b float, a float)
+#define! glClear(b ptr)
+#define! glBegin(c ptr)
+#define! glColor3f(r float, g float, b float)
+#define! glVertex2f( x float, y float )
+#define! glEnd()
+#define! glutSwapBuffers()
+
+#define! glutInit(argc int*, char**)
+#define! glutInitDisplayMode(dm ptr)
+#define! glutInitWindowSize(w int,h int)
+#define! glutInitWindowPosition(x int,y int)
+#define! glutCreateWindow(t cpstring)
+#define! glutDisplayFunc(f function())
+#define! glutIdleFunc(f function())
+#define! glutPostRedisplay()
+#define! glutMainLoop()
+#define! glColor3f(r float, g float, b float) 
+#define! glRasterPos2f(x float, y float)
+#define! glutBitmapString(font ptr, str cpstring)

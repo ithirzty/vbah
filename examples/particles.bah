@@ -1,0 +1,213 @@
+/////////////////////////////////////////////////////////////
+//   Particles system demo using OpenGL and GLUT in Bah.   //
+//       To compile, use 'bah ./particles.bah -d'.         //
+//                                                         //
+//                                     © Aloïs Laurent Boë //
+/////////////////////////////////////////////////////////////
+
+#include "iostream.bah"
+#include "time.bah"
+#include "rand.bah"
+
+#include "../vbah.bah"
+
+#define! cos(f float) float
+#define! sin(f float) float
+#define! sqrt(f float) float
+
+drawCircle(x float, y float, radius float) {
+    glVertex2f(x, y)
+    twicePi = 2.0 * 3.142
+    i=0; for i <= 20 {
+        xr = radius * cos(<float>i * twicePi / 20.0)
+        yr = radius * sin(<float>i * twicePi / 20.0)
+        glVertex2f(x + xr, y + yr)
+        i = i + 1
+    }
+}
+
+randFloat() float {
+    f = <float>randomInRange(0, 100000) / 100000.0
+    return f
+}
+
+delta = 0.0
+
+
+struct part {
+    x: float = 0.0
+    y: float = 0.0
+    velX: float = 0.0
+    velY: float = 0.0
+
+    radius: float = 0.08
+
+    r: float = 1.0
+    g: float = 1.0
+    b: float = 1.0
+
+    collideBorders() {
+        if this.x - this.radius <= -1.0 {
+            this.x = -1.0 + this.radius
+            this.velX = -1.0 * this.velX
+        } else if this.x + this.radius >= 1.0 {
+            this.x = 1.0 - this.radius
+            this.velX = -1.0 * this.velX
+        }
+        if this.y - this.radius <= -1.0 {
+            this.y = -1.0 + this.radius
+            this.velY = -1.0 * this.velY
+        } else if this.y + this.radius >= 1.0 {
+            this.y = 1.0 - this.radius
+            this.velY = -1.0 * this.velY
+        }
+    }
+
+    collide(p part*) {
+        distX = this.x - p.x
+        distY = this.y - p.y
+        sumRad = this.radius + p.radius
+
+        if distX * distX + distY * distY <= sumRad * sumRad {
+            distX2 = distX * distX
+            distY2 = distY * distY
+            dist = sqrt(distX2 + distY2)
+            if dist == 0.0 {
+                dist = 1.0
+            }
+            velX = distX / dist
+            velY = distY / dist
+            p.velX = p.velX + velX * -1.0
+            p.velY = p.velY + velY * -1.0
+            this.velX = this.velX + velX// * 0.5
+            this.velY = this.velY + velY// * 0.5
+            sumRad = sumRad + 0.0001
+            this.x = p.x + sumRad * velX
+            this.y = p.y + sumRad * velY
+        }
+    }
+
+    draw() {
+        this.x = this.x + this.velX * delta
+        this.y = this.y + this.velY * delta
+        this.collideBorders()
+        glBegin(noCheck(GL_TRIANGLE_FAN))
+        glColor3f(this.r, this.g, this.b)
+        drawCircle(this.x, this.y, this.radius)
+        glEnd()
+    }
+
+}
+
+
+struct ps {
+    gravity: float = 15.0
+    globalRad: float = 0.02
+    nbParts: int = 20
+    parts: []part*
+    
+    init() {
+        i=0; for i < this.nbParts {
+            p = new part
+            p.radius = this.globalRad
+            p.velX = randFloat() + 0.7
+            p.velY = randFloat() + 0.7
+            p.r = randFloat()
+            p.g = randFloat()
+            p.b = randFloat()
+            this.parts[i] = p
+            i = i + 1
+        }
+    }
+
+    add(nb int) {
+        nb = this.nbParts + nb
+        i=this.nbParts
+        for i < nb {
+            p = new part
+            p.radius = this.globalRad
+            p.velX = randFloat() + 0.7
+            p.velY = randFloat() + 0.7
+            p.r = randFloat()
+            p.g = randFloat()
+            p.b = randFloat()
+            this.parts[i] = p
+            i = i + 1
+        }
+        this.nbParts = nb
+    }
+
+    draw() {
+        i=0; for i < this.nbParts {
+            p = this.parts[i]
+            p.velY = p.velY - this.gravity * delta
+            j=0; for j < this.nbParts {
+                p1 = this.parts[j]
+                p.collide(p1)
+                j = j + 1
+            }
+            p.draw()
+            i = i + 1
+        }
+    }
+
+}
+
+drawText(x float, y float, font ptr, str cpstring) {
+    glRasterPos2f(x, y)
+    glutBitmapString(font, str)
+}
+
+particles ps
+
+fps() int {
+    fps = 1.0 / delta
+    return <int>fps
+}
+
+lastPart int
+display() {
+    if particles.nbParts < 300 && getTimeUnix() - lastPart > 1000000000 {
+        particles.add(1)
+        lastPart = getTimeUnix()
+    }
+    glClearColor(0.0,0.0,0.0,1.0)
+    glClear(noCheck(GL_COLOR_BUFFER_BIT))
+    nd = <float>getTimeUnix()
+    
+    
+    particles.draw()
+    
+    glColor3f(1.0, 1.0, 1.0)
+    drawText(-1.0, 0.94, noCheck(GLUT_BITMAP_TIMES_ROMAN_24), intToStr(fps())+"fps")
+    delta = <float>getTimeUnix() - nd
+    delta = delta / 1000000000.0
+    glutSwapBuffers()
+}
+
+
+idle() {
+    glutPostRedisplay()
+}
+
+main(args []cpstring) int {
+    particles = ps{}
+    particles.globalRad = 0.05
+    particles.nbParts = 150
+    particles.init()
+
+    lastPart = getTimeUnix()
+
+    argc = 0
+    glutInit(&argc, null)
+    glutInitDisplayMode(noCheck(GLUT_DOUBLE | GLUT_RGB))
+    glutInitWindowSize(600,600)
+    glutInitWindowPosition(100,100)
+    glutCreateWindow("Particles")
+    glutDisplayFunc(display)
+    glutIdleFunc(display)
+    
+    glutMainLoop()
+
+    return 0
+}
