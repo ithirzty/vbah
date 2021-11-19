@@ -1,9 +1,13 @@
 #include "iostream.bah"
+#include "time.bah"
 #include "<GL/gl.h>"
 #include "<GL/glut.h>"
 
 #cLib "lGL" "lglut"
 
+#define! cos(f float) float
+#define! sin(f float) float
+#define! sqrt(f float) float
 
 #define! glClearColor(r float, g float, b float, a float)
 #define! glClear(b ptr)
@@ -25,3 +29,150 @@
 #define! glColor3f(r float, g float, b float) 
 #define! glRasterPos2f(x float, y float)
 #define! glutBitmapString(font ptr, str cpstring)
+
+//Used for describing a RGB color value.
+struct rgb {
+    r: float
+    g: float
+    b: float
+}
+
+//Used for making a rgb structure.
+rgb(r float, g float, b float) rgb {
+    rgb = rgb{}
+    rgb.r = r
+    rgb.g = g
+    rgb.b = b
+    return rgb
+}
+
+//Used for drawing a filled-circle.
+drawCircle(x float, y float, radius float, color rgb) {
+    glBegin(noCheck(GL_TRIANGLE_FAN))
+    glColor3f(color.r, color.g, color.b)
+    glVertex2f(x, y)
+    twicePi = 2.0 * 3.142
+    i=0; for i <= 20 {
+        xr = radius * cos(<float>i * twicePi / 20.0)
+        yr = radius * sin(<float>i * twicePi / 20.0)
+        glVertex2f(x + xr, y + yr)
+        i = i + 1
+    }
+    glEnd()
+}
+
+//Used for drawing text.
+drawText(x float, y float, color rgb, font ptr, str cpstring) {
+    glColor3f(color.r, color.g, color.b)
+    glRasterPos2f(x, y)
+    glutBitmapString(font, str)
+}
+
+//Used for clearing the screen each frame.
+clearFrame() {
+    glClearColor(0.0,0.0,0.0,1.0)
+    glClear(noCheck(GL_COLOR_BUFFER_BIT))
+}
+
+//Used for asking a new frame.
+redrawFrame() {
+    glutPostRedisplay()
+}
+
+//Used for sending the frame.
+sendFrame() {
+    glutSwapBuffers()
+}
+
+#define __VBAH_display()
+#define __VBAH_idle()
+
+//Wrapper for a window.
+struct window {
+    width: int
+    height: int
+    x: int
+    y: int
+    title: cpstring
+    autoClear: bool = true
+    autoLoop: bool = true
+
+    display: function()
+    idle: function()
+
+    //Used for launching the window.
+    launch() {
+        glutInitWindowSize(this.width, this.height)
+        glutInitWindowPosition(this.x, this.y)
+        glutCreateWindow(this.title)
+        glutDisplayFunc(__VBAH_display)
+        glutIdleFunc(__VBAH_idle)
+        glutMainLoop()
+    }
+
+    delta: float
+    tmpDelta: float
+    //Used for starting the delta calculation.
+    //Needs to be called at each beginning of frame.
+    //The resulting delta can be accessed as '.delta'.
+    //It is the time in second (float) used for making the last frame.
+    startDelta() {
+        this.tmpDelta = <float>getTimeUnix()     
+    }
+
+    //Used for ending the delta calculation.
+    //Needs to be called at each end of frame.
+    endDelta() {
+        this.delta = <float>getTimeUnix() - this.tmpDelta
+        this.delta = this.delta / 1000000000.0
+    }
+
+    fps() int {
+        fps = 1.0 / this.delta
+        return <int>fps
+    }
+}
+
+
+
+WINDOW_PTR window*
+
+__VBAH_display() {
+    if WINDOW_PTR.autoClear == true {
+        clearFrame()
+    }
+    dsp function() = WINDOW_PTR.display
+    if dsp != null {
+        WINDOW_PTR.startDelta()
+        dsp()
+        WINDOW_PTR.endDelta()
+        sendFrame()
+    }
+
+}
+
+__VBAH_idle() {
+    idl function() = WINDOW_PTR.display
+    if idl != null {
+        idl()
+    }
+    if WINDOW_PTR.autoLoop == true {
+        redrawFrame()
+    }
+}
+
+//Used for making a window.
+window(w int, h int, t cpstring) window* {
+    win = new window
+    win.width = w
+    win.height = h
+    win.title = t
+    win.x = 100
+    win.y = 100
+
+    argc = 0
+    glutInit(&argc, null)
+    glutInitDisplayMode(noCheck(GLUT_DOUBLE | GLUT_RGB))
+    WINDOW_PTR = win
+    return win
+}
