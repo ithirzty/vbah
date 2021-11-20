@@ -1,0 +1,84 @@
+/////////////////////////////////////////////////////////////
+//       Textures demo using OpenGL and GLUT in Bah.       //
+//       To compile, use 'bah ./particles.bah -d'.         //
+//                                                         //
+//                                     © Aloïs Laurent Boë //
+/////////////////////////////////////////////////////////////
+
+
+#include "iostream.bah"
+#include "time.bah"
+#include "rand.bah"
+
+#include "../vbah.bah"
+
+win window*
+//Color of the circle
+color rgb
+
+//Circle position
+posX = 0.0
+posY = 0.0
+
+//Set the circle color to white when window is initiated
+init() {
+    color = rgb(1.0, 1.0, 1.0)
+}
+
+display() {
+    //Draw the circle every frame
+    drawCircle(posX, posY, 0.05, color)
+}
+
+click(button int, pressed bool, x int, y int) {
+    //Translate the position of the event from pixels to window coordinates
+    xf float = x
+    yf float = y
+    pixelsToCoords(&xf, &yf)
+    //Update position
+    posX = xf
+    posY = yf
+    //Change the color if the button is pressed or released
+    if pressed == true {
+        color = rgb(1.0, 0.0, 0.0)
+    } else {
+        color = rgb(1.0, 1.0, 1.0)
+    }
+
+}
+
+drag(x int, y int) {
+    //Translate the position of the event from pixels to window coordinates
+    xf float = x
+    yf float = y
+    pixelsToCoords(&xf, &yf)
+    //Update position
+    posX = xf
+    posY = yf
+    //Set the color to green
+    color = rgb(0.0, 1.0, 0.0)
+}
+
+move(x int, y int) {
+    //Translate the position of the event from pixels to window coordinates
+    xf float = x
+    yf float = y
+    pixelsToCoords(&xf, &yf)
+    //Update position
+    posX = xf
+    posY = yf
+}
+
+main(args []cpstring) int {
+    //launching the window
+    
+    win = window(600, 600, "Mouse")
+    win.display = display
+    win.click = click
+    win.drag = drag
+    win.init = init
+    win.move = move
+    win.launch()
+
+    return 0
+}

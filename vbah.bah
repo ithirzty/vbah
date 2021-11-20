@@ -40,6 +40,13 @@
 #define! glTexParameterf(tm ptr, mn ptr, mv ptr)
 #define! gluBuild2DMipmaps(tm ptr, nb int, w int, h int, colors ptr, cont ptr, data cpstring)
 #define! glTexCoord2f(x float, y float)
+#define! glutMouseFunc(f ptr)
+#define! glutMotionFunc(f ptr)
+#define! glutPassiveMotionFunc(f ptr)
+#define! glutKeyboardFunc(f ptr)
+#define! glutFullScreen()
+#define! glutGet(m ptr) int
+
 
 //Used for opennning a BMP file and transforming it into a texture.
 BMPtoTex(path cpstring, w int, h int) GLuint {
@@ -177,6 +184,10 @@ sendFrame() {
 
 #define __VBAH_display()
 #define __VBAH_idle()
+#define __VBAH_mouse(btn int, state int, x int, y int)
+#define __VBAH_move(x int, y int)
+#define __VBAH_drag(x int, y int)
+#define __VBAH_keyboard(key char, x int, y int)
 
 //Wrapper for a window.
 struct window {
@@ -191,6 +202,10 @@ struct window {
     display: function()
     idle: function()
     init: function()
+    click: function(int, bool, int, int)
+    move: function(int, int)
+    drag: function(int, int)
+    keyboard: function(char, int, int)
 
     //Used for launching the window.
     launch() {
@@ -199,6 +214,10 @@ struct window {
         glutCreateWindow(this.title)
         glutDisplayFunc(__VBAH_display)
         glutIdleFunc(__VBAH_idle)
+        glutMouseFunc(__VBAH_mouse)
+        glutPassiveMotionFunc(__VBAH_move)
+        glutMotionFunc(__VBAH_drag)
+        glutKeyboardFunc(__VBAH_keyboard)
         init = this.init
         if init != null {
             init()
@@ -223,9 +242,25 @@ struct window {
         this.delta = this.delta / 1000000000.0
     }
 
+    //Used for getting the current number of frame per second.
     fps() int {
         fps = 1.0 / this.delta
         return <int>fps
+    }
+
+    //Used for making the window full screen.
+    fullscreen() {
+        glutFullScreen()
+    }
+
+    //Used for getting window's width.
+    getWidth() float {
+        return <float>glutGet(noCheck(GLUT_WINDOW_WIDTH))
+    }
+
+    //Used for getting window's height.
+    getHeight() float {
+        return <float>glutGet(noCheck(GLUT_WINDOW_HEIGHT))
     }
 }
 
@@ -255,6 +290,46 @@ __VBAH_idle() {
     if WINDOW_PTR.autoLoop == true {
         redrawFrame()
     }
+}
+
+__VBAH_mouse(btn int, state int, x int, y int) {
+    mse = WINDOW_PTR.click
+    if mse != null {
+        clicked = false
+        if state == 0 {
+            clicked = true
+        }
+        mse(btn, clicked, x, y)
+    }
+}
+
+__VBAH_move(x int, y int) {
+    mve = WINDOW_PTR.move
+    if mve != null {
+        mve(x, y)
+    }
+}
+
+__VBAH_drag(x int, y int) {
+    mve = WINDOW_PTR.drag
+    if mve != null {
+        mve(x, y)
+    }
+}
+
+__VBAH_keyboard(key char, x int, y int) {
+    kb = WINDOW_PTR.keyboard
+    if kb != null {
+        kb(key, x, y)
+    }
+}
+
+//Used for converting position in pixels to window coordinates position.
+pixelsToCoords(x float*, y float*) {
+    nx = *x * 2.0 / WINDOW_PTR.getWidth()
+    *x = nx - 1.0
+    ny = *y * -2.0 / WINDOW_PTR.getHeight()
+    *y = ny + 1.0
 }
 
 //Used for making a window.

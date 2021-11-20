@@ -27,3 +27,4 @@ Compile your program, `bah main.bah -d`.
 ## Examples
 - [Particles](./examples/particles.bah), a simple particle system. <br> ![particles sreenshot](./screenshots/particles.png)
 - [Textures](./examples/textures.bah), a demonstration of loading textures. <br> ![textures screenshot](./screenshots/textures.png)
+- [Mouse](./examples/mouse.bah), a demonstration of mouse callbacks. <br> ![mouse screenshot](./screenshots/mouse.gif)
