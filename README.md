@@ -74,7 +74,7 @@ Its methods are:
 - **fps() int** returns the current number of frames per second,
 - **getWidth() int** used for making the window fullscreened,
 - **getHeight() int** returns the width of the window in pixels,
-- **fullscreen()** returns the height of the window in pixels,
+- **fullscreen()** makes the window fullscreenned,
 
 ## Examples
 - [Particles](./examples/particles.bah), a simple particle system. <br> ![particles sreenshot](./screenshots/particles.png)
