@@ -200,7 +200,9 @@ struct window {
         glutDisplayFunc(__VBAH_display)
         glutIdleFunc(__VBAH_idle)
         init = this.init
-        init()
+        if init != null {
+            init()
+        }
         glutMainLoop()
     }
 
