@@ -35,19 +35,20 @@ struct part {
 
     //Used for colliding the particle with the borders of the window.
     collideBorders() {
-        if this.x - this.radius <= -1.0 {
-            this.x = -1.0 + this.radius
-            this.velX = -1.0 * this.velX
-        } else if this.x + this.radius >= 1.0 {
-            this.x = 1.0 - this.radius
-            this.velX = -1.0 * this.velX
+        
+        if this.x - this.radius <= win.lb {
+            this.x = win.lb + this.radius
+            this.velX = -0.9 * this.velX
+        } else if this.x + this.radius >= win.rb {
+            this.x = win.rb - this.radius
+            this.velX = -0.9 * this.velX
         }
-        if this.y - this.radius <= -1.0 {
-            this.y = -1.0 + this.radius
-            this.velY = -1.0 * this.velY
-        } else if this.y + this.radius >= 1.0 {
-            this.y = 1.0 - this.radius
-            this.velY = -1.0 * this.velY
+        if this.y - this.radius <= win.bb {
+            this.y = win.bb + this.radius
+            this.velY = -0.9 * this.velY
+        } else if this.y + this.radius >= win.tb {
+            this.y = win.tb - this.radius
+            this.velY = -0.9 * this.velY
         }
     }
 
@@ -66,10 +67,12 @@ struct part {
             }
             velX = distX / dist
             velY = distY / dist
-            p.velX = p.velX + velX * -1.0
-            p.velY = p.velY + velY * -1.0
-            this.velX = this.velX + velX// * 0.5
-            this.velY = this.velY + velY// * 0.5
+            if p != null {
+                p.velX = p.velX + velX * -0.4
+                p.velY = p.velY + velY * -0.4
+            }
+            this.velX = this.velX + velX * 0.4
+            this.velY = this.velY + velY * 0.4
             sumRad = sumRad + 0.0001
             this.x = p.x + sumRad * velX
             this.y = p.y + sumRad * velY
@@ -88,7 +91,7 @@ struct part {
 
 //A wrapper for the whole particle system.
 struct ps {
-    gravity: float = 15.0
+    gravity: float = 5.0
     globalRad: float = 0.02
     nbParts: int = 20
     parts: []part*
@@ -98,8 +101,8 @@ struct ps {
         i=0; for i < this.nbParts {
             p = new part
             p.radius = this.globalRad
-            p.velX = randFloat() + 0.7
-            p.velY = randFloat() + 0.7
+            p.velX = randFloat() - 0.5
+            p.velY = randFloat() - 0.5
             p.r = randFloat()
             p.g = randFloat()
             p.b = randFloat()
@@ -109,30 +112,71 @@ struct ps {
     }
 
     //Used for adding a particle.
-    add(nb int) {
-        nb = this.nbParts + nb
-        i=this.nbParts
+    add(nb int, x float, y float, rad float) {
+        i = 0; j = 0
         for i < nb {
             p = new part
             p.radius = this.globalRad
-            p.velX = randFloat() + 0.7
-            p.velY = randFloat() + 0.7
+            p.velX = randFloat() - 0.5
+            p.velY = randFloat() - 0.5
             p.r = randFloat()
             p.g = randFloat()
             p.b = randFloat()
-            this.parts[i] = p
+            p.x = x
+            p.radius = rad
+            p.y = y
+            placed = false
+            for j < len(this.parts) {
+                op = this.parts[j]
+                if op == null {
+                    placed = true
+                    this.parts[j] = p
+                    break
+                }
+                j = j + 1
+            }
+            if placed == false {
+                this.parts[len(this.parts)] = p
+            }
+            this.nbParts = this.nbParts + 1
             i = i + 1
         }
-        this.nbParts = nb
+    }
+
+    //Used for deleting particles at the specified coordinates.
+    remove(x float, y float) {
+        i=0; for i < len(this.parts) {
+            p = this.parts[i]
+            if p == null {
+                i = i + 1
+                continue
+            }
+            distX = x - p.x
+            distY = y - p.y
+            sumRad = p.radius
+            if distX * distX + distY * distY <= sumRad * sumRad {
+                this.parts[i] = null
+                this.nbParts = this.nbParts - 1
+            }
+            i = i + 1
+        }
     }
 
     //Used for colliding and drawing every particles.
     draw() {
-        i=0; for i < this.nbParts {
+        i=0; for i < len(this.parts) {
             p = this.parts[i]
+            if p == null {
+                i = i + 1
+                continue
+            }
             p.velY = p.velY - this.gravity * win.delta
-            j=0; for j < this.nbParts {
+            j=0; for j < len(this.parts) {
                 p1 = this.parts[j]
+                if p1 == null {
+                    j = j + 1
+                    continue
+                }
                 p.collide(p1)
                 j = j + 1
             }
@@ -151,29 +195,55 @@ lastPart int
 //Called on each frame.
 display() {
     //Adding a particle evry second.
-    if particles.nbParts < 200 && getTimeUnix() - lastPart > 1000000000 {
-        particles.add(1)
+    if particles.nbParts < 20 && getTimeUnix() - lastPart > 1000000000 {
+        particles.add(1, 0.0, 0.0, 0.055)
         lastPart = getTimeUnix()
     }
     //Drawing particles.
     particles.draw()
     
     //drawing the fps count at the top left of the window.
-    drawText(-1.0, 0.94, rgb(1.0, 1.0, 1.0), noCheck(GLUT_BITMAP_TIMES_ROMAN_24), intToStr(win.fps())+"fps")
+    //0px from the left
+    //24px from the top
+    tx = 0.0; ty = 24.0
+    pixelsToCoords(&tx, &ty)
+    drawText(tx, ty, rgb(1.0, 1.0, 1.0), noCheck(GLUT_BITMAP_TIMES_ROMAN_24), intToStr(win.fps())+" fps\n"+intToStr(particles.nbParts)+" particles")
 }
 
+currentBtn int
+
+handleMouse(x int, y int) {
+    xf float = x
+    yf float = y
+    pixelsToCoords(&xf, &yf)
+    if currentBtn == MOUSE_LEFT_BUTTON {
+        particles.add(1, xf, yf, 0.04)
+    } else if currentBtn == MOUSE_RIGHT_BUTTON {
+        particles.remove(xf, yf)
+    }
+}
+
+click(btn int, pressed bool, x int, y int) {
+    if pressed == false {
+        return
+    }
+    currentBtn = btn
+    handleMouse(x, y)
+}
 
 main(args []cpstring) int {
     //particle system
     particles = ps{}
-    particles.globalRad = 0.05
-    particles.nbParts = 150
+    particles.globalRad = 0.055
+    particles.nbParts = 20
     particles.init()
     lastPart = getTimeUnix()
 
     //launching the window
     win = window(600, 600, "Particles")
     win.display = display
+    win.click = click
+    win.drag = handleMouse
     win.launch()
 
     return 0

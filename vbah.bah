@@ -46,7 +46,18 @@
 #define! glutKeyboardFunc(f ptr)
 #define! glutFullScreen()
 #define! glutGet(m ptr) int
+#define! gluOrtho2D(l float, r float, b float, t float)
+#define! glViewport(l int, t int, r int, b int)
+#define! glMatrixMode(m ptr)
+#define! glLoadIdentity()
+#define! glutReshapeFunc(f ptr)
+#define! gluUnProject(wx float, wy float, wz float, m ptr, p ptr, v ptr, x float*, y float*, z float*)
+#define! glGetDoublev(w ptr, t float*)
+#define! glGetIntegerv(w ptr, t int*)
 
+const MOUSE_LEFT_BUTTON = 0
+const MOUSE_WHEEL_BUTTON = 1
+const MOUSE_RIGHT_BUTTON = 2
 
 //Used for opennning a BMP file and transforming it into a texture.
 BMPtoTex(path cpstring, w int, h int) GLuint {
@@ -188,6 +199,7 @@ sendFrame() {
 #define __VBAH_move(x int, y int)
 #define __VBAH_drag(x int, y int)
 #define __VBAH_keyboard(key char, x int, y int)
+#define __VBAH_resize(w int, h int)
 
 //Wrapper for a window.
 struct window {
@@ -199,6 +211,11 @@ struct window {
     autoClear: bool = true
     autoLoop: bool = true
 
+    lb: float = -1.0
+    tb: float = 1.0
+    rb: float = 1.0
+    bb: float = -1.0
+
     display: function()
     idle: function()
     init: function()
@@ -206,6 +223,9 @@ struct window {
     move: function(int, int)
     drag: function(int, int)
     keyboard: function(char, int, int)
+
+    delta: float
+    lastTimeDelta: float
 
     //Used for launching the window.
     launch() {
@@ -218,28 +238,33 @@ struct window {
         glutPassiveMotionFunc(__VBAH_move)
         glutMotionFunc(__VBAH_drag)
         glutKeyboardFunc(__VBAH_keyboard)
+        glutReshapeFunc(__VBAH_resize)
         init = this.init
         if init != null {
             init()
         }
+        this.lastTimeDelta = <float>getTimeUnix()
         glutMainLoop()
     }
 
-    delta: float
-    tmpDelta: float
     //Used for starting the delta calculation.
     //Needs to be called at each beginning of frame.
     //The resulting delta can be accessed as '.delta'.
     //It is the time in second (float) used for making the last frame.
     startDelta() {
-        this.tmpDelta = <float>getTimeUnix()     
+        // this.tmpDelta = <float>getTimeUnix()     
     }
 
     //Used for ending the delta calculation.
     //Needs to be called at each end of frame.
     endDelta() {
-        this.delta = <float>getTimeUnix() - this.tmpDelta
-        this.delta = this.delta / 1000000000.0
+        nltd float = getTimeUnix()
+        delta = nltd - this.lastTimeDelta
+        this.lastTimeDelta = nltd
+        delta = delta / 1000000000.0
+        this.delta = delta
+        // tmpD = <float>getTimeUnix() - this.tmpDelta
+        // this.delta = tmpD / 1000000000.0
     }
 
     //Used for getting the current number of frame per second.
@@ -274,12 +299,10 @@ __VBAH_display() {
     }
     dsp function() = WINDOW_PTR.display
     if dsp != null {
-        WINDOW_PTR.startDelta()
         dsp()
-        WINDOW_PTR.endDelta()
         sendFrame()
     }
-
+    WINDOW_PTR.endDelta()
 }
 
 __VBAH_idle() {
@@ -324,12 +347,45 @@ __VBAH_keyboard(key char, x int, y int) {
     }
 }
 
+#define pixelsToCoords(x float*, y float*)
+
+__VBAH_resize(w int, h int) {
+    ar = <float>h/<float>w
+    WINDOW_PTR.width = w
+    WINDOW_PTR.height = h
+    glViewport(0,0,w,h)
+    glMatrixMode(noCheck(GL_PROJECTION))
+    glLoadIdentity()
+    if w >= h {
+        gluOrtho2D(-1.0/ar, 1.0/ar, -1.0, 1.0)
+        WINDOW_PTR.lb = -1.0 / ar
+        WINDOW_PTR.rb = 1.0 / ar
+        WINDOW_PTR.tb = 1.0      
+        WINDOW_PTR.bb = -1.0      
+    } else {
+        gluOrtho2D(-1.0, 1.0, -1.0*ar, 1.0*ar)
+        WINDOW_PTR.lb = -1.0
+        WINDOW_PTR.rb = 1.0
+        WINDOW_PTR.bb = -1.0 * ar
+        WINDOW_PTR.tb = 1.0 * ar
+    }
+    glMatrixMode(noCheck(GL_MODELVIEW))
+}
+
 //Used for converting position in pixels to window coordinates position.
 pixelsToCoords(x float*, y float*) {
-    nx = *x * 2.0 / WINDOW_PTR.getWidth()
-    *x = nx - 1.0
-    ny = *y * -2.0 / WINDOW_PTR.getHeight()
-    *y = ny + 1.0
+    m float* = memoryAlloc(SIZE_OF_FLOAT * 16)
+    p float* = memoryAlloc(SIZE_OF_FLOAT * 16)
+    v int* = memoryAlloc(SIZE_OF_INT * 4)
+    glGetDoublev(noCheck(GL_MODELVIEW_MATRIX), m)
+    glGetIntegerv(noCheck(GL_VIEWPORT), v)
+    glGetDoublev(noCheck(GL_PROJECTION_MATRIX), p)
+    nx float
+    ny float
+    nz float
+    gluUnProject(*x, *y, 0.0, m, p, v, &nx, &ny, &nz)
+    *x = nx
+    *y = ny * -1.0
 }
 
 //Used for making a window.

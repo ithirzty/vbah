@@ -24,7 +24,7 @@ display() {
 }
 
 main(args []cpstring) int {
-    win = window(600, 600, "Mouse")
+    win = window(600, 600, "My window")
     win.display = display
     win.launch()
     return 0
