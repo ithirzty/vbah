@@ -1,0 +1,38 @@
+/////////////////////////////////////////////////////////////
+//       Textures demo using OpenGL and GLUT in Bah.       //
+//       To compile, use 'bah ./particles.bah -d'.         //
+//                                                         //
+//                                     © Aloïs Laurent Boë //
+/////////////////////////////////////////////////////////////
+
+
+#include "iostream.bah"
+#include "time.bah"
+#include "rand.bah"
+
+#include "../vbah.bah"
+
+win window*
+tex rgb
+
+display() {
+    drawBox(0.0, 0.0, 0.50, 0.50, tex)
+    drawCircle(0.0, 0.5, 0.25, tex)
+}
+
+init() {
+    //Note: texture from: https://www.vecteezy.com/free-vector/lines
+    tex = rgbTexture("./assets/tex.bmp", 1920, 1229)
+}
+
+main(args []cpstring) int {
+    //launching the window
+    
+    win = window(600, 600, "Textures")
+    win.display = display
+    win.autoLoop = false
+    win.init = init
+    win.launch()
+
+    return 0
+}

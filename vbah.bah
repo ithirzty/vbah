@@ -3,7 +3,10 @@
 #include "<GL/gl.h>"
 #include "<GL/glut.h>"
 
-#cLib "lGL" "lglut"
+#cLib "lGL" "lglut" "lGLU"
+
+#define! GLuint uint
+
 
 #define! cos(f float) float
 #define! sin(f float) float
@@ -29,15 +32,63 @@
 #define! glColor3f(r float, g float, b float) 
 #define! glRasterPos2f(x float, y float)
 #define! glutBitmapString(font ptr, str cpstring)
+#define! glEnable(m ptr)
+#define! glDisable(m ptr)
+#define! glGenTextures(i int, t GLuint*)
+#define! glBindTexture(tm ptr, t GLuint)
+#define! glTexEnvf(tenv ptr, tm ptr, mod ptr)
+#define! glTexParameterf(tm ptr, mn ptr, mv ptr)
+#define! gluBuild2DMipmaps(tm ptr, nb int, w int, h int, colors ptr, cont ptr, data cpstring)
+#define! glTexCoord2f(x float, y float)
+
+//Used for opennning a BMP file and transforming it into a texture.
+BMPtoTex(path cpstring, w int, h int) GLuint {
+    texture GLuint
+    fs = fileStream{}
+    fs.open(path, "rb")
+    fs.setPos(54)
+    if fs.isValid() == 0 {
+        return null
+    }
+    //read file
+    data = fs.readBytes()
+    fs.close()
+    //converting BMP bgr to rgb
+    i=0; for i < w * h {
+        index = i * 3
+        b = data[index]
+        r = data[index+2]
+        data[index] = r
+        data[index+2] = b
+        i = i + 1
+    }
+
+    glGenTextures(1, &texture)
+    glBindTexture(noCheck(GL_TEXTURE_2D), texture)
+    glTexEnvf(noCheck(GL_TEXTURE_ENV), noCheck(GL_TEXTURE_ENV_MODE), noCheck(GL_MODULATE))
+    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MIN_FILTER), noCheck(GL_LINEAR_MIPMAP_NEAREST))
+    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MAG_FILTER), noCheck(GL_LINEAR))
+    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_WRAP_S), noCheck(GL_REPEAT))
+    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_WRAP_T), noCheck(GL_REPEAT))
+    gluBuild2DMipmaps(noCheck(GL_TEXTURE_2D), 3, w, h, noCheck(GL_RGB), noCheck(GL_UNSIGNED_BYTE), arrAsStr(data))
+    return texture
+}
+
 
 //Used for describing a RGB color value.
+//This can also hold a texture.
 struct rgb {
     r: float
     g: float
     b: float
+
+    isTex: bool = false
+    tex: GLuint
+    texW: int
+    texH: int
 }
 
-//Used for making a rgb structure.
+//Used for making a rgb structure with the r, g and b values.
 rgb(r float, g float, b float) rgb {
     rgb = rgb{}
     rgb.r = r
@@ -46,19 +97,59 @@ rgb(r float, g float, b float) rgb {
     return rgb
 }
 
+//Used for making a rgb structure with a structure.
+rgbTexture(path cpstring, w int, h int) rgb {
+    c = rgb{}
+    c.isTex = true
+    c.tex = BMPtoTex(path, w, h)
+    c.texW = w
+    c.texH = h
+    return c
+}
+
+//Used for setting the drawing color/texture.
+setDrawingColor(color rgb) bool {
+    if color.isTex == false {
+        glColor3f(color.r, color.g, color.b)
+    } else {
+        glBindTexture(noCheck(GL_TEXTURE_2D), color.tex)
+        glEnable(noCheck(GL_TEXTURE_2D))
+    }
+    return color.isTex
+}
+
 //Used for drawing a filled-circle.
 drawCircle(x float, y float, radius float, color rgb) {
+    setDrawingColor(color)
     glBegin(noCheck(GL_TRIANGLE_FAN))
-    glColor3f(color.r, color.g, color.b)
-    glVertex2f(x, y)
+    texX = 0.5
+    texY = 0.5
+    glTexCoord2f(texX, texY); glVertex2f(x, y)
+
+
     twicePi = 2.0 * 3.142
     i=0; for i <= 20 {
         xr = radius * cos(<float>i * twicePi / 20.0)
         yr = radius * sin(<float>i * twicePi / 20.0)
-        glVertex2f(x + xr, y + yr)
+        glTexCoord2f(texX + xr, texY + yr); glVertex2f(x + xr, y + yr)
         i = i + 1
     }
     glEnd()
+    glDisable(noCheck(GL_TEXTURE_2D))
+}
+
+//Used for drawing a box.
+drawBox(x float, y float, w float, h float, color rgb) {
+    isTex = setDrawingColor(color)
+    glBegin(noCheck(GL_TRIANGLE_FAN))
+    hw = w / 2.0
+    hh = h / 2.0
+    glTexCoord2f(0.0,1.0); glVertex2f(x-hw, y+hh)
+    glTexCoord2f(1.0,1.0); glVertex2f(x+hw, y+hh)
+    glTexCoord2f(1.0,0.0); glVertex2f(x+hw, y-hh)
+    glTexCoord2f(0.0,0.0); glVertex2f(x-hw, y-hh)
+    glEnd()
+    glDisable(noCheck(GL_TEXTURE_2D))
 }
 
 //Used for drawing text.
@@ -99,6 +190,7 @@ struct window {
 
     display: function()
     idle: function()
+    init: function()
 
     //Used for launching the window.
     launch() {
@@ -107,6 +199,8 @@ struct window {
         glutCreateWindow(this.title)
         glutDisplayFunc(__VBAH_display)
         glutIdleFunc(__VBAH_idle)
+        init = this.init
+        init()
         glutMainLoop()
     }
 
