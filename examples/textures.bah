@@ -1,6 +1,6 @@
 /////////////////////////////////////////////////////////////
 //       Textures demo using OpenGL and GLUT in Bah.       //
-//       To compile, use 'bah ./particles.bah -d'.         //
+//        To compile, use 'bah ./textures.bah -d'.         //
 //                                                         //
 //                                     © Aloïs Laurent Boë //
 /////////////////////////////////////////////////////////////
