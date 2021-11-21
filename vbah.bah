@@ -130,6 +130,7 @@ setDrawingColor(color rgb) bool {
     if color.isTex == false {
         glColor3f(color.r, color.g, color.b)
     } else {
+        glColor3f(1.0, 1.0, 1.0)
         glBindTexture(noCheck(GL_TEXTURE_2D), color.tex)
         glEnable(noCheck(GL_TEXTURE_2D))
     }
@@ -146,9 +147,13 @@ drawCircle(x float, y float, radius float, color rgb) {
 
 
     twicePi = 2.0 * 3.142
-    i=0; for i <= 20 {
-        xr = radius * cos(<float>i * twicePi / 20.0)
-        yr = radius * sin(<float>i * twicePi / 20.0)
+    res int = radius * 30.0
+    if res < 20 {
+        res = 20
+    }
+    i=0; for i <= res {
+        xr = radius * cos(<float>i * twicePi / <float>res)
+        yr = radius * sin(<float>i * twicePi / <float>res)
         glTexCoord2f(texX + xr, texY + yr); glVertex2f(x + xr, y + yr)
         i = i + 1
     }
@@ -166,6 +171,37 @@ drawBox(x float, y float, w float, h float, color rgb) {
     glTexCoord2f(1.0,1.0); glVertex2f(x+hw, y+hh)
     glTexCoord2f(1.0,0.0); glVertex2f(x+hw, y-hh)
     glTexCoord2f(0.0,0.0); glVertex2f(x-hw, y-hh)
+    glEnd()
+    glDisable(noCheck(GL_TEXTURE_2D))
+}
+
+//Used for drawing a custom shape.
+drawShape(shape []float, color rgb) {
+    if len(shape) == 0 {
+        return
+    }
+    isTex = setDrawingColor(color)
+    glBegin(noCheck(GL_TRIANGLE_FAN))
+    minX = shape[0]
+    minY = shape[1]
+    if isTex == true {
+        i=2; for i < len(shape) {
+            x = shape[i]
+            y = shape[i+1]
+            if x < minX {
+                minX = x
+            }
+            if y < minY {
+                minY = y
+            }
+            i = i + 2
+        }
+    }
+    
+    i=0; for i < len(shape) {
+        glTexCoord2f(shape[i] - minX,shape[i+1] - minY); glVertex2f(shape[i], shape[i+1])
+        i = i + 2
+    }
     glEnd()
     glDisable(noCheck(GL_TEXTURE_2D))
 }
@@ -248,14 +284,6 @@ struct window {
     }
 
     //Used for starting the delta calculation.
-    //Needs to be called at each beginning of frame.
-    //The resulting delta can be accessed as '.delta'.
-    //It is the time in second (float) used for making the last frame.
-    startDelta() {
-        // this.tmpDelta = <float>getTimeUnix()     
-    }
-
-    //Used for ending the delta calculation.
     //Needs to be called at each end of frame.
     endDelta() {
         nltd float = getTimeUnix()

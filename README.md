@@ -1,8 +1,14 @@
 # VBah
 A graphic library in Bah, built on [Glut](https://www.opengl.org/resources/libraries/glut/) and [OpenGL](https://www.opengl.org/).
 
-This uses the OpenGL coordinates system. [0.0;0.0] is the center of the window. Edges are at -1.0 and 1.0.
-The horizontal axis is x and the vertical axis is y.
+This uses the OpenGL coordinates system. [0.0;0.0] is the center of the window.
+
+**The window borders can change**, if the window is resized or does not have an aspect ratio of 1:1.
+To get the current window's borders, use:
+- **window.lb** the left border (smallest x coordinate),
+- **window.rb** the right border (biggest x coordinate),
+- **window.bb** the bottom border (smallest y coordinate),
+- **window.tb** the top border (biggest y coordinate).
 
 ## Usage
 Note that this includes libraries that are typically shared.
@@ -40,6 +46,7 @@ Compile your program, `bah main.bah -d`.
 - **setDrawingColor(color rgb) bool** sets the current drawing color/texture from a rgb struct,
 - **drawCircle(x float, y float, radius float, color rgb)** draws a circle,
 - **drawBox(x float, y float, w float, h float, color rgb)** draws a box (rectangle),
+- **drawShape(shape []float, color rgb)** draws a custom shape,
 - **drawText(x float, y float, color rgb, font ptr, str cpstring)** draws text,
 - **clearFrame()** clears the screen (this is automatically done at each frame if `window.autoClear == true` as it is by default),
 - **redrawFrame()** ask the scheduler to redraw a frame (this is automatically done at idle is `window.autoLoop == true` as it is by default),
@@ -51,8 +58,8 @@ Compile your program, `bah main.bah -d`.
 Thw window structures allows you to manipulate the current window, such as launching it, setting its callbacks, getting its delta time (time to render last frame in second as float)...
 
 Its usefull fields are:
-- **width: int** the window's width as it is launched,
-- **height: int** the window's height as it is launched,
+- **width: int** the window's width (will update on resize),
+- **height: int** the window's height (will update on resize),
 - **x: int** the window's x coordinate as it is launched,
 - **y: int** the window's y coordinate as it is launched,
 - **title: cpstring** the window's title as it is launched,
@@ -67,16 +74,21 @@ Its callbacks are:
 - **click: function(int, bool, int, int)** called when the mouse is clicked,
 - **move: function(int, int)** called when the mouse is passively moved,
 - **drag: function(int, int)** called when the mouse is draged (button clicked while moving),
-- **keyboard: function(char, int, int)** called when a key is pressed on the keyboard.
+- **keyboard: function(char, int, int)** called when a key is pressed on the keyboard,
+- **lb: float = -1.0** left border (smallest x coordinate),
+- **tb: float = 1.0** top border (biggest y coordinate),
+- **rb: float = 1.0** right border (biggest x coordinate),
+- **bb: float = -1.0** bottom border (smallest y coordinate).
 
 Its methods are:
 - **launch()** launches the window,
 - **fps() int** returns the current number of frames per second,
-- **getWidth() int** used for making the window fullscreened,
-- **getHeight() int** returns the width of the window in pixels,
+- **getWidth() int** returns the width of the window in pixels *deprecated, use the width field instead*,
+- **getHeight() int** returns the height of the window in pixels *deprecated, use the height field instead*,
 - **fullscreen()** makes the window fullscreenned,
 
 ## Examples
 - [Particles](./examples/particles.bah), a simple particle system. <br> ![particles sreenshot](./screenshots/particles.png)
 - [Textures](./examples/textures.bah), a demonstration of loading textures. <br> ![textures screenshot](./screenshots/textures.png)
 - [Mouse](./examples/mouse.bah), a demonstration of mouse callbacks. <br> ![mouse screenshot](./screenshots/mouse.gif)
+- [Shape](./examples/shape.bah), a demonstration of custom shapes drawing <br> ![shape screenshot](./screenshots/shape.png)
