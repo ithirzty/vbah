@@ -95,9 +95,12 @@ struct ps {
     globalRad: float = 0.02
     nbParts: int = 20
     parts: []part*
+    lastNB: int
+
     
     //Used for initiating the particle system.
     init() {
+        this.lastNB = this.nbParts
         i=0; for i < this.nbParts {
             p = new part
             p.radius = this.globalRad
@@ -137,6 +140,7 @@ struct ps {
             }
             if placed == false {
                 this.parts[len(this.parts)] = p
+                this.lastNB = len(this.parts)
             }
             this.nbParts = this.nbParts + 1
             i = i + 1
@@ -162,26 +166,41 @@ struct ps {
         }
     }
 
+    nbCol: int
+
     //Used for colliding and drawing every particles.
     draw() {
-        i=0; for i < len(this.parts) {
+        this.nbCol = 0
+        wasNull = 0
+        firstNull = 0
+        i=0; for i < this.lastNB {
             p = this.parts[i]
             if p == null {
+                if wasNull == 0 {
+                    firstNull = i
+                    wasNull = 1
+                }
                 i = i + 1
                 continue
+            } else {
+                wasNull = 2
             }
             p.velY = p.velY - this.gravity * win.delta
-            j=0; for j < len(this.parts) {
+            j=i+1; for j < this.lastNB {
                 p1 = this.parts[j]
                 if p1 == null {
                     j = j + 1
                     continue
                 }
+                this.nbCol = this.nbCol + 1
                 p.collide(p1)
                 j = j + 1
             }
             p.draw()
             i = i + 1
+        }
+        if wasNull == 1 {
+            this.lastNB = firstNull
         }
     }
 
@@ -207,7 +226,12 @@ display() {
     //24px from the top
     tx = 0.0; ty = 24.0
     pixelsToCoords(&tx, &ty)
-    drawText(tx, ty, rgb(1.0, 1.0, 1.0), noCheck(GLUT_BITMAP_TIMES_ROMAN_24), intToStr(win.fps())+" fps\n"+intToStr(particles.nbParts)+" particles")
+    drawText(tx, ty, rgb(1.0, 1.0, 1.0), noCheck(GLUT_BITMAP_TIMES_ROMAN_24), intToStr(win.fps())+" fps\n"+intToStr(particles.nbParts)+" particles\n"+intToStr(particles.nbCol)+" col/frame")
+
+    tx = 0.0; ty = <float>win.height - 34.0
+    pixelsToCoords(&tx, &ty)
+    drawText(tx, ty, rgb(0.8, 0.8, 0.8), noCheck(GLUT_BITMAP_TIMES_ROMAN_24), "Press 'f' to toggle fullscreen.\nPress 'g' to toggle gravity.")
+
 }
 
 currentBtn int
@@ -231,6 +255,18 @@ click(btn int, pressed bool, x int, y int) {
     handleMouse(x, y)
 }
 
+kb(key char, x int, y int) {
+    if key == 'f' {
+        win.fullscreen()
+    } else if key == 'g' {
+        if particles.gravity == 0.0 {
+            particles.gravity = 5.0
+        } else {
+            particles.gravity = 0.0
+        }
+    }
+}
+
 main(args []cpstring) int {
     //particle system
     particles = ps{}
@@ -243,6 +279,7 @@ main(args []cpstring) int {
     win = window(600, 600, "Particles")
     win.display = display
     win.click = click
+    win.keyboard = kb
     win.drag = handleMouse
     win.launch()
 

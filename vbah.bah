@@ -54,10 +54,138 @@
 #define! gluUnProject(wx float, wy float, wz float, m ptr, p ptr, v ptr, x float*, y float*, z float*)
 #define! glGetDoublev(w ptr, t float*)
 #define! glGetIntegerv(w ptr, t int*)
+#define! glPushMatrix()
+#define! glPopMatrix()
+#define! glTranslated(x float, y float, z float)
+#define! glRotated(deg float, x float, y float, z float)
+#define! glutReshapeWindow(w int, h int)
 
 const MOUSE_LEFT_BUTTON = 0
 const MOUSE_WHEEL_BUTTON = 1
 const MOUSE_RIGHT_BUTTON = 2
+
+
+//Used for getting the lower-left bounding box coordinate of a shape.
+minCoords(x float*, y float*, shape []float) {
+    if len(shape) < 2 {
+        return
+    }
+    *x = shape[0]
+    *y = shape[1]
+    i=2; for i < len(shape) {
+        if shape[i] < *x {
+            *x = shape[i]
+        }
+        if shape[i+1] < *y {
+            *y = shape[i+1]
+        }
+        i = i + 2
+    }
+}
+
+//Used for getting the upper-right bounding box coordinate of a shape.
+maxCoords(x float*, y float*, shape []float) {
+    if len(shape) < 2 {
+        return
+    }
+    *x = shape[0]
+    *y = shape[1]
+    i=2; for i < len(shape) {
+        if shape[i] > *x {
+            *x = shape[i]
+        }
+        if shape[i+1] > *y {
+            *y = shape[i+1]
+        }
+        i = i + 2
+    }
+}
+
+dot(x1 float, y1 float, x2 float, y2 float) float {
+    return x1 * x2 + y1 * x2
+}
+
+// Used for translating a shape by x and y.
+translateShape(x float, y float, shape []float) {
+    i=0; for i < len(shape) {
+        shape[i] = shape[i] + x
+        shape[i+1] = shape[i+1] + y
+        i = i + 2
+    }
+}
+
+#define centerCoords(x float*, y float*, shape []float)
+
+//Used for generating a circle from a shape.
+circleFromShape(x float*, y float*, rad float*, shape []float) {
+    centerCoords(x, y, shape)
+    minX float
+    minY float
+    minCoords(&minX, &minY, shape)
+    maxX float
+    maxY float
+    maxCoords(&maxX, &maxY, shape)
+    radX = *x - minX
+    radY = *y - minY
+    minRad = radX + radY / 2.0
+    radX = maxX - *x
+    radY = maxY - *y
+    maxRad = radX + radY / 2.0
+    if minRad > maxRad {
+        *rad = minRad
+    } else {
+        *rad = maxRad
+    }
+}
+
+degToRad(d float) float {
+    return d * 3.14159 / 180.0
+}
+
+//Used for rotating a shape.
+//Rotation in degrees.
+rotateShape(rot float, shape []float) {
+    rot = degToRad(rot)
+    mat = []float
+    nx = []float
+    ny = []float
+
+    allocateArray(mat, 4)
+    allocateArray(nx, 2)
+    allocateArray(ny, 2)
+
+    mat[0] = cos(rot)
+    mat[1] = -1.0 * sin(rot)
+    mat[2] = sin(rot)
+    mat[3] = cos(rot)
+
+    i=0; for i < len(shape) {
+        sx = shape[i]
+        sy = shape[i+1]
+
+        nx[0] = sx * mat[0]
+        nx[1] = sx * mat[1]
+
+        ny[0] = sy * mat[2]
+        ny[1] = sy * mat[3]
+
+        shape[i] = ny[0] + nx[0]
+        shape[i+1] = ny[1] + nx[1]
+
+        i = i + 2
+    }
+}
+
+//Used for detecting if two circle are colliding.
+detectCollideCircle(x1 float, y1 float, rad1 float, x2 float, y2 float, rad2 float) bool {
+    distX = x1 - x2
+    distY = y1 - y2
+    sumRad = rad1 + rad2
+    if distX * distX + distY * distY <= sumRad * sumRad {
+        return true
+    }
+    return false
+}
 
 //Used for opennning a BMP file and transforming it into a texture.
 BMPtoTex(path cpstring, w int, h int) GLuint {
@@ -182,24 +310,11 @@ drawShape(shape []float, color rgb) {
     }
     isTex = setDrawingColor(color)
     glBegin(noCheck(GL_TRIANGLE_FAN))
-    minX = shape[0]
-    minY = shape[1]
-    if isTex == true {
-        i=2; for i < len(shape) {
-            x = shape[i]
-            y = shape[i+1]
-            if x < minX {
-                minX = x
-            }
-            if y < minY {
-                minY = y
-            }
-            i = i + 2
-        }
-    }
-    
+    cX float
+    cY float
+    centerCoords(&cX, &cY, shape)
     i=0; for i < len(shape) {
-        glTexCoord2f(shape[i] - minX,shape[i+1] - minY); glVertex2f(shape[i], shape[i+1])
+        glTexCoord2f(shape[i] - cX + 0.5, shape[i+1] - cY + 0.5); glVertex2f(shape[i], shape[i+1])
         i = i + 2
     }
     glEnd()
@@ -212,6 +327,21 @@ drawText(x float, y float, color rgb, font ptr, str cpstring) {
     glRasterPos2f(x, y)
     glutBitmapString(font, str)
 }
+
+// Used for getting the center of a shape.
+centerCoords(x float*, y float*, shape []float) {
+    tmpX float
+    tmpY float
+    i=0; for i < len(shape) {
+        tmpX = tmpX + shape[i]
+        tmpY = tmpY + shape[i+1]
+        i = i + 2
+    }
+    div = i / 2
+    *x = tmpX / <float>div
+    *y = tmpY / <float>div    
+}
+
 
 //Used for clearing the screen each frame.
 clearFrame() {
@@ -301,9 +431,21 @@ struct window {
         return <int>fps
     }
 
+    oldW: int
+    oldH: int
+    fullscreened: bool = false
+
     //Used for making the window full screen.
     fullscreen() {
-        glutFullScreen()
+        if this.fullscreened == false {
+            this.oldW = this.width
+            this.oldH = this.height
+            glutFullScreen()
+            this.fullscreened = true
+        } else {
+            glutReshapeWindow(this.oldW, this.oldH)
+            this.fullscreened = false
+        }
     }
 
     //Used for getting window's width.
