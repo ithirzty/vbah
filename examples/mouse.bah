@@ -17,27 +17,25 @@ win window*
 color rgb
 
 //Circle position
-posX = 0.0
-posY = 0.0
+pos vec
 
 //Set the circle color to white when window is initiated
 init() {
+    pos = vec(0.0, 0.0)
     color = rgb(1.0, 1.0, 1.0)
 }
 
 display() {
     //Draw the circle every frame
-    drawCircle(posX, posY, 0.05, color)
+    drawCircle(pos, 0.05, color)
 }
 
 click(button int, pressed bool, x int, y int) {
     //Translate the position of the event from pixels to window coordinates
-    xf float = x
-    yf float = y
-    pixelsToCoords(&xf, &yf)
+    f = vec(<float>x, <float>y)
+    pixelsToCoords(&f)
     //Update position
-    posX = xf
-    posY = yf
+    pos.set(f)
     //Change the color if the button is pressed or released
     if pressed == true {
         color = rgb(1.0, 0.0, 0.0)
@@ -49,24 +47,20 @@ click(button int, pressed bool, x int, y int) {
 
 drag(x int, y int) {
     //Translate the position of the event from pixels to window coordinates
-    xf float = x
-    yf float = y
-    pixelsToCoords(&xf, &yf)
+    f = vec(<float>x, <float>y)
+    pixelsToCoords(&f)
     //Update position
-    posX = xf
-    posY = yf
+    pos.set(f)
     //Set the color to green
     color = rgb(0.0, 1.0, 0.0)
 }
 
 move(x int, y int) {
     //Translate the position of the event from pixels to window coordinates
-    xf float = x
-    yf float = y
-    pixelsToCoords(&xf, &yf)
+    f = vec(<float>x, <float>y)
+    pixelsToCoords(&f)
     //Update position
-    posX = xf
-    posY = yf
+    pos.set(f)
 }
 
 main(args []cpstring) int {

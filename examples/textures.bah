@@ -16,8 +16,8 @@ win window*
 tex rgb
 
 display() {
-    drawBox(0.0, 0.0, 0.50, 0.50, tex)
-    drawCircle(0.0, 0.5, 0.25, tex)
+    drawBox(vec(0.0, 0.0), 0.50, 0.50, tex)
+    drawCircle(vec(0.0, 0.5), 0.25, tex)
 }
 
 init() {

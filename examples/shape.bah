@@ -27,7 +27,7 @@ struct userShape {
     //used for drawing the points
     drawPoints() {
         i=0; for i < len(this.shape) {
-            drawCircle(this.shape[i], this.shape[i+1], 0.02, rgb(1.0, 0.0, 0.0))
+            drawCircle(vec(this.shape[i], this.shape[i+1]), 0.02, rgb(1.0, 0.0, 0.0))
             i = i + 2
         }
     }
@@ -64,12 +64,11 @@ click(btn int, pressed bool, x int, y int) {
     //if it is a click and not a click release
     if pressed == true {
         //translate the window coordinates (pixels) to object coordinates
-        xf float = x
-        yf float = y
-        pixelsToCoords(&xf, &yf)
+        f = vec(<float>x, <float>y)
+        pixelsToCoords(&f)
         //adds the coordinates to the array
-        shape.shape[len(shape.shape)] = xf
-        shape.shape[len(shape.shape)] = yf
+        shape.shape[len(shape.shape)] = f.x
+        shape.shape[len(shape.shape)] = f.y
     }
 }
 

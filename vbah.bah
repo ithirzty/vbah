@@ -60,77 +60,135 @@
 #define! glRotated(deg float, x float, y float, z float)
 #define! glutReshapeWindow(w int, h int)
 
+
 const MOUSE_LEFT_BUTTON = 0
 const MOUSE_WHEEL_BUTTON = 1
 const MOUSE_RIGHT_BUTTON = 2
 
+struct vec {
+    x: float
+    y: float
+    x2: float
+    y2: float
+    simple: bool = true
+
+    mult(v2 vec) vec {
+        r = vec{}
+        if this.simple == true && v2.simple == false {
+            r.x = this.x * v2.x
+            r.y = this.x * v2.y
+            r.x2 = this.y * v2.x2
+            r.y2 = this.y * v2.y2
+            r.x = r.x + r.x2
+            r.y = r.y + r.y2
+            r.x2 = 0.0
+            r.y2 = 0.0
+        } else if this.simple == false && v2.simple == true {
+            r.x = this.x * v2.x
+            r.y = this.y * v2.x
+            r.x2 = this.x2 * v2.y
+            r.y2 = this.y2 * v2.y
+            r.x = r.x + r.x2
+            r.y = r.y + r.y2
+            r.x2 = 0.0
+            r.y2 = 0.0
+        }
+        return r
+    }
+
+    set(v vec) {
+        this.x = v.x
+        this.y = v.y
+        this.x2 = v.x2
+        this.x2 = v.y2
+        this.simple = v.simple
+    }
+
+}
+
+//Used for making a vector from 2 points.
+vec(x float, y float) vec {
+    v = vec{}
+    v.x = x
+    v.y = y
+    return v
+}
+
+//Used for making a 4 components vector (2x2 matrix) from 4 points.
+vec4(x1 float, y1 float, x2 float, y2 float) vec {
+    v = vec{}
+    v.x = x1
+    v.y = y1
+    v.x2 = x2
+    v.y2 = y2
+    v.simple = false
+    return v
+}
 
 //Used for getting the lower-left bounding box coordinate of a shape.
-minCoords(x float*, y float*, shape []float) {
+minCoords(v vec*, shape []float) {
     if len(shape) < 2 {
         return
     }
-    *x = shape[0]
-    *y = shape[1]
+    v.x = shape[0]
+    v.y = shape[1]
     i=2; for i < len(shape) {
-        if shape[i] < *x {
-            *x = shape[i]
+        if shape[i] < v.x {
+            v.x = shape[i]
         }
-        if shape[i+1] < *y {
-            *y = shape[i+1]
+        if shape[i+1] < v.y {
+            v.y = shape[i+1]
         }
         i = i + 2
     }
 }
 
 //Used for getting the upper-right bounding box coordinate of a shape.
-maxCoords(x float*, y float*, shape []float) {
+maxCoords(v vec*, shape []float) {
     if len(shape) < 2 {
         return
     }
-    *x = shape[0]
-    *y = shape[1]
+    v.x = shape[0]
+    v.y = shape[1]
     i=2; for i < len(shape) {
-        if shape[i] > *x {
-            *x = shape[i]
+        if shape[i] > v.x {
+            v.x = shape[i]
         }
-        if shape[i+1] > *y {
-            *y = shape[i+1]
+        if shape[i+1] > v.y {
+            v.y = shape[i+1]
         }
         i = i + 2
     }
 }
 
 //Used for getting the dot product of two vectors.
-dot(x1 float, y1 float, x2 float, y2 float) float {
-    return x1 * x2 + y1 * x2
+dot(v1 vec, v2 vec) float {
+    return v1.x* v2.x + v1.y * v2.x
 }
 
 // Used for translating a shape by x and y.
-translateShape(x float, y float, shape []float) {
+translateShape(v vec, shape []float) {
     i=0; for i < len(shape) {
-        shape[i] = shape[i] + x
-        shape[i+1] = shape[i+1] + y
+        shape[i] = shape[i] + v.x
+        shape[i+1] = shape[i+1] + v.y
         i = i + 2
     }
 }
 
-#define centerCoords(x float*, y float*, shape []float)
+#define centerCoords(v vec*, shape []float)
 
 //Used for generating a circle from a shape.
-circleFromShape(x float*, y float*, rad float*, shape []float) {
-    centerCoords(x, y, shape)
-    minX float
-    minY float
-    minCoords(&minX, &minY, shape)
-    maxX float
-    maxY float
-    maxCoords(&maxX, &maxY, shape)
-    radX = *x - minX
-    radY = *y - minY
+circleFromShape(v vec*, rad float*, shape []float) {
+    centerCoords(v, shape)
+    min = vec{}
+    minCoords(&min, shape)
+    max = vec{}
+    maxCoords(&max, shape)
+    radX = v.x - min.x
+    radY = v.y - min.y
     minRad = radX + radY / 2.0
-    radX = maxX - *x
-    radY = maxY - *y
+    radX = max.x - v.x
+    radY = max.y - v.y
     maxRad = radX + radY / 2.0
     if minRad > maxRad {
         *rad = minRad
@@ -144,46 +202,33 @@ degToRad(d float) float {
     return d * 3.14159 / 180.0
 }
 
+
 //Used for rotating a shape.
 //Rotation in degrees.
 rotateShape(rot float, shape []float) {
     rot = degToRad(rot)
-    mat = []float
-    nx = []float
-    ny = []float
 
-    allocateArray(mat, 4)
-    allocateArray(nx, 2)
-    allocateArray(ny, 2)
+    mat = vec4(cos(rot), -1.0 * sin(rot), sin(rot), cos(rot))
 
-    mat[0] = cos(rot)
-    mat[1] = -1.0 * sin(rot)
-    mat[2] = sin(rot)
-    mat[3] = cos(rot)
+    nx = vec{}
+    ny = vec{}
 
     i=0; for i < len(shape) {
-        sx = shape[i]
-        sy = shape[i+1]
+        s = vec(shape[i], shape[i+1])
+        rs = mat * s
 
-        nx[0] = sx * mat[0]
-        nx[1] = sx * mat[1]
-
-        ny[0] = sy * mat[2]
-        ny[1] = sy * mat[3]
-
-        shape[i] = ny[0] + nx[0]
-        shape[i+1] = ny[1] + nx[1]
+        shape[i] = rs.x
+        shape[i+1] = rs.y
 
         i = i + 2
     }
 }
 
 //Used for detecting if two circle are colliding.
-detectCollideCircle(x1 float, y1 float, rad1 float, x2 float, y2 float, rad2 float) bool {
-    distX = x1 - x2
-    distY = y1 - y2
+detectCollideCircle(v1 vec, rad1 float, v2 vec, rad2 float) bool {
+    dist = vec(v1.x - v2.x, v1.y - v2.y)
     sumRad = rad1 + rad2
-    if distX * distX + distY * distY <= sumRad * sumRad {
+    if dist.x * dist.x + dist.y * dist.y <= sumRad * sumRad {
         return true
     }
     return false
@@ -268,12 +313,12 @@ setDrawingColor(color rgb) bool {
 }
 
 //Used for drawing a filled-circle.
-drawCircle(x float, y float, radius float, color rgb) {
+drawCircle(v vec, radius float, color rgb) {
     setDrawingColor(color)
     glBegin(noCheck(GL_TRIANGLE_FAN))
     texX = 0.5
     texY = 0.5
-    glTexCoord2f(texX, texY); glVertex2f(x, y)
+    glTexCoord2f(texX, texY); glVertex2f(v.x, v.y)
 
 
     twicePi = 2.0 * 3.142
@@ -284,7 +329,7 @@ drawCircle(x float, y float, radius float, color rgb) {
     i=0; for i <= res {
         xr = radius * cos(<float>i * twicePi / <float>res)
         yr = radius * sin(<float>i * twicePi / <float>res)
-        glTexCoord2f(texX + xr, texY + yr); glVertex2f(x + xr, y + yr)
+        glTexCoord2f(texX + xr, texY + yr); glVertex2f(v.x + xr, v.y + yr)
         i = i + 1
     }
     glEnd()
@@ -292,15 +337,15 @@ drawCircle(x float, y float, radius float, color rgb) {
 }
 
 //Used for drawing a box.
-drawBox(x float, y float, w float, h float, color rgb) {
+drawBox(v vec, w float, h float, color rgb) {
     isTex = setDrawingColor(color)
     glBegin(noCheck(GL_TRIANGLE_FAN))
     hw = w / 2.0
     hh = h / 2.0
-    glTexCoord2f(0.0,1.0); glVertex2f(x-hw, y+hh)
-    glTexCoord2f(1.0,1.0); glVertex2f(x+hw, y+hh)
-    glTexCoord2f(1.0,0.0); glVertex2f(x+hw, y-hh)
-    glTexCoord2f(0.0,0.0); glVertex2f(x-hw, y-hh)
+    glTexCoord2f(0.0,1.0); glVertex2f(v.x-hw, v.y+hh)
+    glTexCoord2f(1.0,1.0); glVertex2f(v.x+hw, v.y+hh)
+    glTexCoord2f(1.0,0.0); glVertex2f(v.x+hw, v.y-hh)
+    glTexCoord2f(0.0,0.0); glVertex2f(v.x-hw, v.y-hh)
     glEnd()
     glDisable(noCheck(GL_TEXTURE_2D))
 }
@@ -312,11 +357,10 @@ drawShape(shape []float, color rgb) {
     }
     isTex = setDrawingColor(color)
     glBegin(noCheck(GL_TRIANGLE_FAN))
-    cX float
-    cY float
-    centerCoords(&cX, &cY, shape)
+    c = vec{}
+    centerCoords(&c, shape)
     i=0; for i < len(shape) {
-        glTexCoord2f(shape[i] - cX + 0.5, shape[i+1] - cY + 0.5); glVertex2f(shape[i], shape[i+1])
+        glTexCoord2f(shape[i] - c.x + 0.5, shape[i+1] - c.y + 0.5); glVertex2f(shape[i], shape[i+1])
         i = i + 2
     }
     glEnd()
@@ -324,24 +368,23 @@ drawShape(shape []float, color rgb) {
 }
 
 //Used for drawing text.
-drawText(x float, y float, color rgb, font ptr, str cpstring) {
+drawText(v vec, color rgb, font ptr, str cpstring) {
     glColor3f(color.r, color.g, color.b)
-    glRasterPos2f(x, y)
+    glRasterPos2f(v.x, v.y)
     glutBitmapString(font, str)
 }
 
 // Used for getting the center of a shape.
-centerCoords(x float*, y float*, shape []float) {
-    tmpX float
-    tmpY float
+centerCoords(v vec*, shape []float) {
+    tmp = vec{}
     i=0; for i < len(shape) {
-        tmpX = tmpX + shape[i]
-        tmpY = tmpY + shape[i+1]
+        tmp.x = tmp.x + shape[i]
+        tmp.y = tmp.y + shape[i+1]
         i = i + 2
     }
     div = i / 2
-    *x = tmpX / <float>div
-    *y = tmpY / <float>div    
+    v.x = tmp.x / <float>div
+    v.y = tmp.y / <float>div    
 }
 
 
@@ -519,7 +562,7 @@ __VBAH_keyboard(key char, x int, y int) {
     }
 }
 
-#define pixelsToCoords(x float*, y float*)
+#define pixelsToCoords(v vec*)
 
 __VBAH_resize(w int, h int) {
     ar = <float>h/<float>w
@@ -545,19 +588,19 @@ __VBAH_resize(w int, h int) {
 }
 
 //Used for converting position in pixels to window coordinates position.
-pixelsToCoords(x float*, y float*) {
+pixelsToCoords(v vec*) {
     m float* = memoryAlloc(SIZE_OF_FLOAT * 16)
     p float* = memoryAlloc(SIZE_OF_FLOAT * 16)
-    v int* = memoryAlloc(SIZE_OF_INT * 4)
+    vp int* = memoryAlloc(SIZE_OF_INT * 4)
     glGetDoublev(noCheck(GL_MODELVIEW_MATRIX), m)
-    glGetIntegerv(noCheck(GL_VIEWPORT), v)
+    glGetIntegerv(noCheck(GL_VIEWPORT), vp)
     glGetDoublev(noCheck(GL_PROJECTION_MATRIX), p)
     nx float
     ny float
     nz float
-    gluUnProject(*x, *y, 0.0, m, p, v, &nx, &ny, &nz)
-    *x = nx
-    *y = ny * -1.0
+    gluUnProject(v.x, v.y, 0.0, m, p, vp, &nx, &ny, &nz)
+    v.x = nx
+    v.y = ny * -1.0
 }
 
 //Used for making a window.
