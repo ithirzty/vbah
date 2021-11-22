@@ -52,7 +52,18 @@ Compile your program, `bah main.bah -d`.
 - **redrawFrame()** ask the scheduler to redraw a frame (this is automatically done at idle is `window.autoLoop == true` as it is by default),
 - **sendFrame()** send the frame (this is automatically done after the `window.display` function is returned),
 - **pixelsToCoords(x float&ast;, y float&ast;)** translates pixel coordinates to window coordinates (useful for mouse callbacks),
-- **window(w int, h int, t cpstring) window&ast;** used for making a window.
+- **window(w int, h int, t cpstring) window&ast;** used for making a window,
+- **minCoords(x float&ast;, y float&ast;, shape []float)** used for getting the lower-left coordinate of a shape's bounding box,
+- **maxCoords(x float&ast;, y float&ast;, shape []float)** used for getting the upper-right coordinate of a shape's bounding box,
+- **dot(x1 float, y1 float, x2 float, y2 float) float** used for getting the dot product of two vectors,
+- **translateShape(x float, y float, shape []float)** used for translating a shape,
+- **circleFromShape(x float&ast;, y float&ast;, rad float&ast;, shape []float)** used for getting the circle bounding box of a shape,
+- **degToRad(d float) float** used for converting degrees in radians,
+- **rotateShape(rot float, shape []float)** used for rotating a shape by an ammount of degrees,
+- **detectCollideCircle(x1 float, y1 float, rad1 float, x2 float, y2 float, rad2 float) bool** used for detecing collision between two circle bounding boxes,
+- **centerCoords(x float&ast;, y float&ast;, shape []float)** used for getting the centroid of a shape.
+
+
 
 ### The window structure
 Thw window structures allows you to manipulate the current window, such as launching it, setting its callbacks, getting its delta time (time to render last frame in second as float)...

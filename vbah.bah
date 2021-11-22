@@ -101,6 +101,7 @@ maxCoords(x float*, y float*, shape []float) {
     }
 }
 
+//Used for getting the dot product of two vectors.
 dot(x1 float, y1 float, x2 float, y2 float) float {
     return x1 * x2 + y1 * x2
 }
@@ -138,6 +139,7 @@ circleFromShape(x float*, y float*, rad float*, shape []float) {
     }
 }
 
+//Used for converting degrees into radians.
 degToRad(d float) float {
     return d * 3.14159 / 180.0
 }
