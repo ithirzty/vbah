@@ -59,6 +59,7 @@
 #define! glTranslated(x float, y float, z float)
 #define! glRotated(deg float, x float, y float, z float)
 #define! glutReshapeWindow(w int, h int)
+#define! glLineWidth(w float)
 
 
 const MOUSE_LEFT_BUTTON = 0
@@ -346,6 +347,17 @@ drawBox(v vec, w float, h float, color rgb) {
     glTexCoord2f(1.0,1.0); glVertex2f(v.x+hw, v.y+hh)
     glTexCoord2f(1.0,0.0); glVertex2f(v.x+hw, v.y-hh)
     glTexCoord2f(0.0,0.0); glVertex2f(v.x-hw, v.y-hh)
+    glEnd()
+    glDisable(noCheck(GL_TEXTURE_2D))
+}
+
+//Draws a line. the width is in pixels
+drawLine(v1 vec, v2 vec, w float, color rgb) {
+    isTex = setDrawingColor(color)
+    glLineWidth(w)
+    glBegin(noCheck(GL_LINES))
+    glVertex2f(v1.x, v1.y)
+    glVertex2f(v2.x, v2.y)
     glEnd()
     glDisable(noCheck(GL_TEXTURE_2D))
 }

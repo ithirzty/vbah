@@ -63,7 +63,8 @@ Compile your program, `bah main.bah -d`.
 - **degToRad(d float) float** used for converting degrees in radians,
 - **rotateShape(rot float, shape []float)** used for rotating a shape by an ammount of degrees,
 - **detectCollideCircle(v1 vec, rad1 float, v2 vec, rad2 float) bool** used for detecing collision between two circle bounding boxes,
-- **centerCoords(v vec&ast;, shape []float)** used for getting the centroid of a shape.
+- **centerCoords(v vec&ast;, shape []float)** used for getting the centroid of a shape,
+- **drawLine(v1 vec, v2 vec, w float, color rgb)** used for drawing a line.
 
 ### The window structure
 Thw window structures allows you to manipulate the current window, such as launching it, setting its callbacks, getting its delta time (time to render last frame in second as float)...
@@ -76,7 +77,8 @@ Its usefull fields are:
 - **title: cpstring** the window's title as it is launched,
 - **autoClear: bool** weither the frame should be automatically cleared at each frame,
 - **autoLoop: bool** weither a new frame should be scheduled after the last one finished,
-- **delta: float** the time in second as float that the last frame took to render.
+- **delta: float** the time in second as float that the last frame took to render,
+- **fullscreened: bool** weither the window is in fullscreen mode.
 
 Its callbacks are:
 - **display: function()**  called to draw a new frame,
