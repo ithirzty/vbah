@@ -164,7 +164,7 @@ maxCoords(v vec*, shape []float) {
 
 //Used for getting the dot product of two vectors.
 dot(v1 vec, v2 vec) float {
-    return v1.x* v2.x + v1.y * v2.x
+    return v1.x* v2.x + v1.y * v2.y
 }
 
 // Used for translating a shape by x and y.
