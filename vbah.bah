@@ -3,7 +3,22 @@
 #include "<GL/gl.h>"
 #include "<GL/glut.h>"
 
-#cLib "lGL" "lglut" "lGLU"
+#linux {
+    #cLib "lGL" "lglut" "lGLU"
+}
+
+#windows {
+
+    #static {
+        #cLib "lfreeglut_static"
+    }
+
+    #dynamic {
+        #cLib "lfreeglut"
+    }
+
+    #cLib "lopengl32"  "lGLU32" "Wl,--subsystem,windows"
+}
 
 #define! GLuint uint
 
@@ -226,9 +241,9 @@ rotateShape(rot float, shape []float) {
 }
 
 //Used for detecting if two circle are colliding.
-detectCollideCircle(v1 vec, rad1 float, v2 vec, rad2 float) bool {
+detectCollideCircle(v1 vec, radius1 float, v2 vec, radius2 float) bool {
     dist = vec(v1.x - v2.x, v1.y - v2.y)
-    sumRad = rad1 + rad2
+    sumRad = radius1 + radius2
     if dist.x * dist.x + dist.y * dist.y <= sumRad * sumRad {
         return true
     }
