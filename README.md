@@ -3,6 +3,8 @@ A graphic library in Bah, built on [Glut](https://www.opengl.org/resources/libra
 
 This uses the OpenGL coordinates system. [0.0;0.0] is the center of the window.
 
+#### You can install vbah using `bpm -install ithirzty/vbah`
+
 **The window borders can change**, if the window is resized or does not have an aspect ratio of 1:1.
 To get the current window's borders, use:
 - **window.lb** the left border (smallest x coordinate),
@@ -16,6 +18,7 @@ Note that this includes libraries that are typically shared.
 
 ### Step 1 - Dependencies
 Make sure you have [OpenGL](https://www.opengl.org/) and [Glut](https://www.opengl.org/resources/libraries/glut/) C libraries installed.
+
 
 ### Step 2 - Writting code
 Make a new program `main.bah`.
