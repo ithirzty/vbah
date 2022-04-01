@@ -5,6 +5,10 @@
 
 #linux {
     #cLib "lGL" "lglut" "lGLU"
+
+    #static {
+        #warning "You may need to compile the program as a dynamic executable (-d)."
+    }
 }
 
 #windows {
@@ -95,8 +99,8 @@ struct vec {
             r.y = this.x * v2.y
             r.x2 = this.y * v2.x2
             r.y2 = this.y * v2.y2
-            r.x = r.x + r.x2
-            r.y = r.y + r.y2
+            r.x += r.x2
+            r.y += r.y2
             r.x2 = 0.0
             r.y2 = 0.0
         } else if this.simple == false && v2.simple == true {
@@ -104,8 +108,8 @@ struct vec {
             r.y = this.y * v2.x
             r.x2 = this.x2 * v2.y
             r.y2 = this.y2 * v2.y
-            r.x = r.x + r.x2
-            r.y = r.y + r.y2
+            r.x += r.x2
+            r.y += r.y2
             r.x2 = 0.0
             r.y2 = 0.0
         }
@@ -124,20 +128,23 @@ struct vec {
 
 //Used for making a vector from 2 points.
 vec(x float, y float) vec {
-    v = vec{}
-    v.x = x
-    v.y = y
+    v = vec{
+        x,
+        y
+    }
     return v
 }
 
 //Used for making a 4 components vector (2x2 matrix) from 4 points.
 vec4(x1 float, y1 float, x2 float, y2 float) vec {
-    v = vec{}
-    v.x = x1
-    v.y = y1
-    v.x2 = x2
-    v.y2 = y2
-    v.simple = false
+    v = vec{
+        x: x1
+        y: y1
+        x2: x2
+        y2: y2
+        simple: false
+        
+    }
     return v
 }
 
@@ -179,15 +186,14 @@ maxCoords(v vec*, shape []float) {
 
 //Used for getting the dot product of two vectors.
 dot(v1 vec, v2 vec) float {
-    return v1.x* v2.x + v1.y * v2.y
+    return v1.x * v2.x + v1.y * v2.y
 }
 
 // Used for translating a shape by x and y.
 translateShape(v vec, shape []float) {
-    i=0; for i < len(shape) {
+    i=0; for i < len(shape), i+=2 {
         shape[i] = shape[i] + v.x
         shape[i+1] = shape[i+1] + v.y
-        i = i + 2
     }
 }
 
@@ -223,20 +229,14 @@ degToRad(d float) float {
 //Rotation in degrees.
 rotateShape(rot float, shape []float) {
     rot = degToRad(rot)
-
     mat = vec4(cos(rot), -1.0 * sin(rot), sin(rot), cos(rot))
-
     nx = vec{}
     ny = vec{}
-
-    i=0; for i < len(shape) {
+    i=0; for i < len(shape), i+=2 {
         s = vec(shape[i], shape[i+1])
         rs = mat * s
-
         shape[i] = rs.x
         shape[i+1] = rs.y
-
-        i = i + 2
     }
 }
 
@@ -263,13 +263,12 @@ BMPtoTex(path cpstring, w int, h int) GLuint {
     data = fs.readBytes()
     fs.close()
     //converting BMP bgr to rgb
-    i=0; for i < w * h {
+    i=0; for i < w * h, i++ {
         index = i * 3
         b = data[index]
         r = data[index+2]
         data[index] = r
         data[index+2] = b
-        i = i + 1
     }
 
     glGenTextures(1, &texture)
@@ -299,20 +298,22 @@ struct rgb {
 
 //Used for making a rgb structure with the r, g and b values.
 rgb(r float, g float, b float) rgb {
-    rgb = rgb{}
-    rgb.r = r
-    rgb.g = g
-    rgb.b = b
-    return rgb
+    color = rgb{
+        r,
+        g,
+        b
+    }
+    return color
 }
 
 //Used for making a rgb structure with a structure.
 rgbTexture(path cpstring, w int, h int) rgb {
-    c = rgb{}
-    c.isTex = true
-    c.tex = BMPtoTex(path, w, h)
-    c.texW = w
-    c.texH = h
+    c = rgb{
+        isTex: true
+        tex: BMPtoTex(path, w, h)
+        texW: w
+        texH: h
+    }
     return c
 }
 
@@ -342,11 +343,10 @@ drawCircle(v vec, radius float, color rgb) {
     if res < 20 {
         res = 20
     }
-    i=0; for i <= res {
+    i=0; for i <= res, i++ {
         xr = radius * cos(<float>i * twicePi / <float>res)
         yr = radius * sin(<float>i * twicePi / <float>res)
         glTexCoord2f(texX + xr, texY + yr); glVertex2f(v.x + xr, v.y + yr)
-        i = i + 1
     }
     glEnd()
     glDisable(noCheck(GL_TEXTURE_2D))
@@ -386,9 +386,8 @@ drawShape(shape []float, color rgb) {
     glBegin(noCheck(GL_TRIANGLE_FAN))
     c = vec{}
     centerCoords(&c, shape)
-    i=0; for i < len(shape) {
+    i=0; for i < len(shape), i+=2 {
         glTexCoord2f(shape[i] - c.x + 0.5, shape[i+1] - c.y + 0.5); glVertex2f(shape[i], shape[i+1])
-        i = i + 2
     }
     glEnd()
     glDisable(noCheck(GL_TEXTURE_2D))
@@ -404,10 +403,9 @@ drawText(v vec, color rgb, font ptr, str cpstring) {
 // Used for getting the center of a shape.
 centerCoords(v vec*, shape []float) {
     tmp = vec{}
-    i=0; for i < len(shape) {
+    i=0; for i < len(shape), i+=2 {
         tmp.x = tmp.x + shape[i]
         tmp.y = tmp.y + shape[i+1]
-        i = i + 2
     }
     div = i / 2
     v.x = tmp.x / <float>div
@@ -468,7 +466,9 @@ struct window {
     //Used for launching the window.
     launch() {
         glutInitWindowSize(this.width, this.height)
-        glutInitWindowPosition(this.x, this.y)
+        if this.x != -1 && this.y != -1 {
+            glutInitWindowPosition(this.x, this.y)
+        }
         glutCreateWindow(this.title)
         glutDisplayFunc(__VBAH_display)
         glutIdleFunc(__VBAH_idle)
@@ -636,8 +636,8 @@ window(w int, h int, t cpstring) window* {
     win.width = w
     win.height = h
     win.title = t
-    win.x = 100
-    win.y = 100
+    win.x = -1
+    win.y = -1
 
     argc = 0
     glutInit(&argc, null)

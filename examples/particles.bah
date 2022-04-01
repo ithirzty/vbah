@@ -9,7 +9,7 @@
 #include "time.bah"
 #include "rand.bah"
 
-#include "../vbah.bah"
+#import "../vbah.bah"
 
 win window*
 
