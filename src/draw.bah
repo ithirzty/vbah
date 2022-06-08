@@ -1,0 +1,87 @@
+//Used for drawing a filled-circle.
+drawCircle(v vec, radius float, color rgb) {
+    setDrawingColor(color)
+    glBegin(noCheck(GL_TRIANGLE_FAN))
+    texX = 0.5
+    texY = 0.5
+    glTexCoord2f(texX, texY); glVertex2f(v.x, v.y)
+
+
+    twicePi = 2.0 * 3.142
+    res int = radius * 30.0
+    if res < 20 {
+        res = 20
+    }
+    i=0; for i <= res, i++ {
+        xr = radius * cos(<float>i * twicePi / <float>res)
+        yr = radius * sin(<float>i * twicePi / <float>res)
+        glTexCoord2f(texX + xr, texY + yr); glVertex2f(v.x + xr, v.y + yr)
+    }
+    glEnd()
+    glDisable(noCheck(GL_TEXTURE_2D))
+}
+
+//Used for drawing a box.
+drawBox(v vec, w float, h float, color rgb) {
+    isTex = setDrawingColor(color)
+    glBegin(noCheck(GL_TRIANGLE_FAN))
+    hw = w / 2.0
+    hh = h / 2.0
+    glTexCoord2f(0.0,1.0); glVertex2f(v.x-hw, v.y+hh)
+    glTexCoord2f(1.0,1.0); glVertex2f(v.x+hw, v.y+hh)
+    glTexCoord2f(1.0,0.0); glVertex2f(v.x+hw, v.y-hh)
+    glTexCoord2f(0.0,0.0); glVertex2f(v.x-hw, v.y-hh)
+    glEnd()
+    glDisable(noCheck(GL_TEXTURE_2D))
+}
+
+//Draws a line. the width is in pixels
+drawLine(v1 vec, v2 vec, w float, color rgb) {
+    isTex = setDrawingColor(color)
+    glLineWidth(w)
+    glBegin(noCheck(GL_LINES))
+    glVertex2f(v1.x, v1.y)
+    glVertex2f(v2.x, v2.y)
+    glEnd()
+    glDisable(noCheck(GL_TEXTURE_2D))
+}
+
+//Used for drawing a custom shape.
+drawShape(shape []float, color rgb) {
+    if len(shape) == 0 {
+        return
+    }
+    isTex = setDrawingColor(color)
+    glBegin(noCheck(GL_TRIANGLE_FAN))
+    c = vec{}
+    centerCoords(&c, shape)
+    i=0; for i < len(shape), i+=2 {
+        glTexCoord2f(shape[i] - c.x + 0.5, shape[i+1] - c.y + 0.5); glVertex2f(shape[i], shape[i+1])
+    }
+    glEnd()
+    glDisable(noCheck(GL_TEXTURE_2D))
+}
+
+//Used for drawing text.
+drawText(v vec, color rgb, font textFont, str cpstring) {
+    setDrawingColor(color)
+    glRasterPos2f(v.x, v.y)
+    glutBitmapString(font.font, str)
+}
+
+
+//Used for clearing the screen each frame.
+clearFrame() {
+    glClearColor(0.0,0.0,0.0,1.0)
+    glClear(noCheck(GL_COLOR_BUFFER_BIT))
+}
+
+//Used for asking a new frame.
+redrawFrame() {
+    glutPostRedisplay()
+}
+
+//Used for sending the frame.
+sendFrame() {
+    glutSwapBuffers()
+}

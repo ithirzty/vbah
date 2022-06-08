@@ -5,9 +5,9 @@
 //                                     © Aloïs Laurent Boë //
 /////////////////////////////////////////////////////////////
 
-#include "iostream.bah"
+#import "iostream.bah"
 
-#include "../vbah.bah"
+#import "../vbah.bah"
 
 win window*
 tex rgb

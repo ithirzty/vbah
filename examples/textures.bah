@@ -6,11 +6,11 @@
 /////////////////////////////////////////////////////////////
 
 
-#include "iostream.bah"
-#include "time.bah"
-#include "rand.bah"
+#import "iostream.bah"
+#import "time.bah"
+#import "rand.bah"
 
-#include "../vbah.bah"
+#import "../vbah.bah"
 
 win window*
 tex rgb

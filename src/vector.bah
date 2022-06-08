@@ -1,0 +1,69 @@
+
+struct vec {
+    x: float
+    y: float
+    x2: float
+    y2: float
+    simple: bool = true
+
+    mult(v2 vec) vec {
+        r = vec{}
+        if this.simple == true && v2.simple == false {
+            r.x = this.x * v2.x
+            r.y = this.x * v2.y
+            r.x2 = this.y * v2.x2
+            r.y2 = this.y * v2.y2
+            r.x += r.x2
+            r.y += r.y2
+            r.x2 = 0.0
+            r.y2 = 0.0
+        } else if this.simple == false && v2.simple == true {
+            r.x = this.x * v2.x
+            r.y = this.y * v2.x
+            r.x2 = this.x2 * v2.y
+            r.y2 = this.y2 * v2.y
+            r.x += r.x2
+            r.y += r.y2
+            r.x2 = 0.0
+            r.y2 = 0.0
+        }
+        return r
+    }
+
+    set(v vec) {
+        this.x = v.x
+        this.y = v.y
+        this.x2 = v.x2
+        this.x2 = v.y2
+        this.simple = v.simple
+    }
+
+}
+
+//Used for making a vector from 2 points.
+vec(x float, y float) vec {
+    v = vec{
+        x,
+        y
+    }
+    return v
+}
+
+//Used for making a 4 components vector (2x2 matrix) from 4 points.
+vec4(x1 float, y1 float, x2 float, y2 float) vec {
+    v = vec{
+        x: x1
+        y: y1
+        x2: x2
+        y2: y2
+        simple: false
+        
+    }
+    return v
+}
+
+
+//Used for getting the dot product of two vectors.
+dot(v1 vec, v2 vec) float {
+    return v1.x * v2.x + v1.y * v2.y
+}

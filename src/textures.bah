@@ -1,0 +1,78 @@
+//Used for opennning a BMP file and transforming it into a texture.
+BMPtoTex(path cpstring, w int, h int) GLuint {
+    texture GLuint
+    fs = fileStream{}
+    fs.open(path, "rb")
+    fs.setPos(54)
+    if fs.isValid() == 0 {
+        return null
+    }
+    //read file
+    data = fs.readBytes()
+    fs.close()
+    //converting BMP bgr to rgb
+    i=0; for i < w * h, i++ {
+        index = i * 3
+        b = data[index]
+        r = data[index+2]
+        data[index] = r
+        data[index+2] = b
+    }
+
+    glGenTextures(1, &texture)
+    glBindTexture(noCheck(GL_TEXTURE_2D), texture)
+    glTexEnvf(noCheck(GL_TEXTURE_ENV), noCheck(GL_TEXTURE_ENV_MODE), noCheck(GL_MODULATE))
+    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MIN_FILTER), noCheck(GL_LINEAR_MIPMAP_NEAREST))
+    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MAG_FILTER), noCheck(GL_LINEAR))
+    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_WRAP_S), noCheck(GL_REPEAT))
+    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_WRAP_T), noCheck(GL_REPEAT))
+    gluBuild2DMipmaps(noCheck(GL_TEXTURE_2D), 3, w, h, noCheck(GL_RGB), noCheck(GL_UNSIGNED_BYTE), arrAsStr(data))
+    return texture
+}
+
+
+//Used for describing a RGB color value.
+//This can also hold a texture.
+struct rgb {
+    r: float
+    g: float
+    b: float
+
+    isTex: bool = false
+    tex: GLuint
+    texW: int
+    texH: int
+}
+
+//Used for making a rgb structure with the r, g and b values.
+rgb(r float, g float, b float) rgb {
+    color = rgb{
+        r,
+        g,
+        b
+    }
+    return color
+}
+
+//Used for making a rgb structure with a structure.
+rgbTexture(path cpstring, w int, h int) rgb {
+    c = rgb{
+        isTex: true
+        tex: BMPtoTex(path, w, h)
+        texW: w
+        texH: h
+    }
+    return c
+}
+
+//Used for setting the drawing color/texture.
+setDrawingColor(color rgb) bool {
+    if color.isTex == false {
+        glColor3f(color.r, color.g, color.b)
+    } else {
+        glColor3f(1.0, 1.0, 1.0)
+        glBindTexture(noCheck(GL_TEXTURE_2D), color.tex)
+        glEnable(noCheck(GL_TEXTURE_2D))
+    }
+    return color.isTex
+}

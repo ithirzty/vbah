@@ -1,0 +1,63 @@
+//Used for converting position in pixels to window coordinates position.
+pixelsToCoords(v vec*) {
+    m float* = memoryAlloc(SIZE_OF_FLOAT * 16)
+    p float* = memoryAlloc(SIZE_OF_FLOAT * 16)
+    vp int* = memoryAlloc(SIZE_OF_INT * 4)
+    glGetDoublev(noCheck(GL_MODELVIEW_MATRIX), m)
+    glGetIntegerv(noCheck(GL_VIEWPORT), vp)
+    glGetDoublev(noCheck(GL_PROJECTION_MATRIX), p)
+    nx float
+    ny float
+    nz float
+    gluUnProject(v.x, v.y, 0.0, m, p, vp, &nx, &ny, &nz)
+    v.x = nx
+    v.y = ny * -1.0
+}
+
+// Used for getting the center of a shape.
+centerCoords(v vec*, shape []float) {
+    tmp = vec{}
+    i=0; for i < len(shape), i+=2 {
+        tmp.x = tmp.x + shape[i]
+        tmp.y = tmp.y + shape[i+1]
+    }
+    div = i / 2
+    v.x = tmp.x / <float>div
+    v.y = tmp.y / <float>div    
+}
+
+//Used for getting the lower-left bounding box coordinate of a shape.
+minCoords(v vec*, shape []float) {
+    if len(shape) < 2 {
+        return
+    }
+    v.x = shape[0]
+    v.y = shape[1]
+    i=2; for i < len(shape) {
+        if shape[i] < v.x {
+            v.x = shape[i]
+        }
+        if shape[i+1] < v.y {
+            v.y = shape[i+1]
+        }
+        i = i + 2
+    }
+}
+
+//Used for getting the upper-right bounding box coordinate of a shape.
+maxCoords(v vec*, shape []float) {
+    if len(shape) < 2 {
+        return
+    }
+    v.x = shape[0]
+    v.y = shape[1]
+    i=2; for i < len(shape) {
+        if shape[i] > v.x {
+            v.x = shape[i]
+        }
+        if shape[i+1] > v.y {
+            v.y = shape[i+1]
+        }
+        i = i + 2
+    }
+}

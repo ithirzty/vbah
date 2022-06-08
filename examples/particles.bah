@@ -5,9 +5,9 @@
 //                                     © Aloïs Laurent Boë //
 /////////////////////////////////////////////////////////////
 
-#include "iostream.bah"
-#include "time.bah"
-#include "rand.bah"
+#import "iostream.bah"
+#import "time.bah"
+#import "rand.bah"
 
 #import "../vbah.bah"
 
@@ -226,11 +226,11 @@ display() {
     //24px from the top
     tp = vec(0.0, 24.0)
     pixelsToCoords(&tp)
-    drawText(tp, rgb(1.0, 1.0, 1.0), noCheck(GLUT_BITMAP_TIMES_ROMAN_24), intToStr(win.fps())+" fps\n"+intToStr(particles.nbParts)+" particles\n"+intToStr(particles.nbCol)+" col/frame")
+    drawText(tp, rgb(1.0, 1.0, 1.0), VBAH_font_times_roman_24, intToStr(win.fps())+" fps\n"+intToStr(particles.nbParts)+" particles\n"+intToStr(particles.nbCol)+" col/frame")
 
     tp = vec(0.0, <float>win.height - 34.0)
     pixelsToCoords(&tp)
-    drawText(tp, rgb(0.8, 0.8, 0.8), noCheck(GLUT_BITMAP_TIMES_ROMAN_24), "Press 'f' to toggle fullscreen.\nPress 'g' to toggle gravity.")
+    drawText(tp, rgb(0.8, 0.8, 0.8), VBAH_font_times_roman_24, "Press 'f' to toggle fullscreen.\nPress 'g' to toggle gravity.")
 
 }
 
@@ -254,7 +254,7 @@ click(btn int, pressed bool, x int, y int) {
     handleMouse(x, y)
 }
 
-kb(key char, x int, y int) {
+kb(key char, mod int) {
     if key == 'f' {
         win.fullscreen()
     } else if key == 'g' {

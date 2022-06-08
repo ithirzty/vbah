@@ -1,433 +1,16 @@
 #include "iostream.bah"
 #include "time.bah"
-#include "<GL/gl.h>"
-#include "<GL/glut.h>"
 
-#linux {
-    #cLib "lGL" "lglut" "lGLU"
-
-    #static {
-        #warning "You may need to compile the program as a dynamic executable (-d)."
-    }
-}
-
-#windows {
-
-    #static {
-        #cLib "lfreeglut_static"
-    }
-
-    #dynamic {
-        #cLib "lfreeglut"
-    }
-
-    #cLib "lopengl32"  "lGLU32" "Wl,--subsystem,windows"
-}
-
-#define! GLuint uint
+#include "./src/bindings.bah"
+#include "./src/declarations.bah"
+#include "./src/vector.bah"
+#include "./src/coords.bah"
+#include "./src/shapes.bah"
+#include "./src/textures.bah"
+#include "./src/text.bah"
+#include "./src/draw.bah"
 
 
-#define! cos(f float) float
-#define! sin(f float) float
-#define! sqrt(f float) float
-
-#define! glClearColor(r float, g float, b float, a float)
-#define! glClear(b ptr)
-#define! glBegin(c ptr)
-#define! glColor3f(r float, g float, b float)
-#define! glVertex2f( x float, y float )
-#define! glEnd()
-#define! glutSwapBuffers()
-
-#define! glutInit(argc int*, char**)
-#define! glutInitDisplayMode(dm ptr)
-#define! glutInitWindowSize(w int,h int)
-#define! glutInitWindowPosition(x int,y int)
-#define! glutCreateWindow(t cpstring)
-#define! glutDisplayFunc(f function())
-#define! glutIdleFunc(f function())
-#define! glutPostRedisplay()
-#define! glutMainLoop()
-#define! glColor3f(r float, g float, b float) 
-#define! glRasterPos2f(x float, y float)
-#define! glutBitmapString(font ptr, str cpstring)
-#define! glEnable(m ptr)
-#define! glDisable(m ptr)
-#define! glGenTextures(i int, t GLuint*)
-#define! glBindTexture(tm ptr, t GLuint)
-#define! glTexEnvf(tenv ptr, tm ptr, mod ptr)
-#define! glTexParameterf(tm ptr, mn ptr, mv ptr)
-#define! gluBuild2DMipmaps(tm ptr, nb int, w int, h int, colors ptr, cont ptr, data cpstring)
-#define! glTexCoord2f(x float, y float)
-#define! glutMouseFunc(f ptr)
-#define! glutMotionFunc(f ptr)
-#define! glutPassiveMotionFunc(f ptr)
-#define! glutKeyboardFunc(f ptr)
-#define! glutFullScreen()
-#define! glutGet(m ptr) int
-#define! gluOrtho2D(l float, r float, b float, t float)
-#define! glViewport(l int, t int, r int, b int)
-#define! glMatrixMode(m ptr)
-#define! glLoadIdentity()
-#define! glutReshapeFunc(f ptr)
-#define! gluUnProject(wx float, wy float, wz float, m ptr, p ptr, v ptr, x float*, y float*, z float*)
-#define! glGetDoublev(w ptr, t float*)
-#define! glGetIntegerv(w ptr, t int*)
-#define! glPushMatrix()
-#define! glPopMatrix()
-#define! glTranslated(x float, y float, z float)
-#define! glRotated(deg float, x float, y float, z float)
-#define! glutReshapeWindow(w int, h int)
-#define! glLineWidth(w float)
-
-
-const MOUSE_LEFT_BUTTON = 0
-const MOUSE_WHEEL_BUTTON = 1
-const MOUSE_RIGHT_BUTTON = 2
-
-struct vec {
-    x: float
-    y: float
-    x2: float
-    y2: float
-    simple: bool = true
-
-    mult(v2 vec) vec {
-        r = vec{}
-        if this.simple == true && v2.simple == false {
-            r.x = this.x * v2.x
-            r.y = this.x * v2.y
-            r.x2 = this.y * v2.x2
-            r.y2 = this.y * v2.y2
-            r.x += r.x2
-            r.y += r.y2
-            r.x2 = 0.0
-            r.y2 = 0.0
-        } else if this.simple == false && v2.simple == true {
-            r.x = this.x * v2.x
-            r.y = this.y * v2.x
-            r.x2 = this.x2 * v2.y
-            r.y2 = this.y2 * v2.y
-            r.x += r.x2
-            r.y += r.y2
-            r.x2 = 0.0
-            r.y2 = 0.0
-        }
-        return r
-    }
-
-    set(v vec) {
-        this.x = v.x
-        this.y = v.y
-        this.x2 = v.x2
-        this.x2 = v.y2
-        this.simple = v.simple
-    }
-
-}
-
-//Used for making a vector from 2 points.
-vec(x float, y float) vec {
-    v = vec{
-        x,
-        y
-    }
-    return v
-}
-
-//Used for making a 4 components vector (2x2 matrix) from 4 points.
-vec4(x1 float, y1 float, x2 float, y2 float) vec {
-    v = vec{
-        x: x1
-        y: y1
-        x2: x2
-        y2: y2
-        simple: false
-        
-    }
-    return v
-}
-
-//Used for getting the lower-left bounding box coordinate of a shape.
-minCoords(v vec*, shape []float) {
-    if len(shape) < 2 {
-        return
-    }
-    v.x = shape[0]
-    v.y = shape[1]
-    i=2; for i < len(shape) {
-        if shape[i] < v.x {
-            v.x = shape[i]
-        }
-        if shape[i+1] < v.y {
-            v.y = shape[i+1]
-        }
-        i = i + 2
-    }
-}
-
-//Used for getting the upper-right bounding box coordinate of a shape.
-maxCoords(v vec*, shape []float) {
-    if len(shape) < 2 {
-        return
-    }
-    v.x = shape[0]
-    v.y = shape[1]
-    i=2; for i < len(shape) {
-        if shape[i] > v.x {
-            v.x = shape[i]
-        }
-        if shape[i+1] > v.y {
-            v.y = shape[i+1]
-        }
-        i = i + 2
-    }
-}
-
-//Used for getting the dot product of two vectors.
-dot(v1 vec, v2 vec) float {
-    return v1.x * v2.x + v1.y * v2.y
-}
-
-// Used for translating a shape by x and y.
-translateShape(v vec, shape []float) {
-    i=0; for i < len(shape), i+=2 {
-        shape[i] = shape[i] + v.x
-        shape[i+1] = shape[i+1] + v.y
-    }
-}
-
-#define centerCoords(v vec*, shape []float)
-
-//Used for generating a circle from a shape.
-circleFromShape(v vec*, rad float*, shape []float) {
-    centerCoords(v, shape)
-    min = vec{}
-    minCoords(&min, shape)
-    max = vec{}
-    maxCoords(&max, shape)
-    radX = v.x - min.x
-    radY = v.y - min.y
-    minRad = radX + radY / 2.0
-    radX = max.x - v.x
-    radY = max.y - v.y
-    maxRad = radX + radY / 2.0
-    if minRad > maxRad {
-        *rad = minRad
-    } else {
-        *rad = maxRad
-    }
-}
-
-//Used for converting degrees into radians.
-degToRad(d float) float {
-    return d * 3.14159 / 180.0
-}
-
-
-//Used for rotating a shape.
-//Rotation in degrees.
-rotateShape(rot float, shape []float) {
-    rot = degToRad(rot)
-    mat = vec4(cos(rot), -1.0 * sin(rot), sin(rot), cos(rot))
-    nx = vec{}
-    ny = vec{}
-    i=0; for i < len(shape), i+=2 {
-        s = vec(shape[i], shape[i+1])
-        rs = mat * s
-        shape[i] = rs.x
-        shape[i+1] = rs.y
-    }
-}
-
-//Used for detecting if two circle are colliding.
-detectCollideCircle(v1 vec, radius1 float, v2 vec, radius2 float) bool {
-    dist = vec(v1.x - v2.x, v1.y - v2.y)
-    sumRad = radius1 + radius2
-    if dist.x * dist.x + dist.y * dist.y <= sumRad * sumRad {
-        return true
-    }
-    return false
-}
-
-//Used for opennning a BMP file and transforming it into a texture.
-BMPtoTex(path cpstring, w int, h int) GLuint {
-    texture GLuint
-    fs = fileStream{}
-    fs.open(path, "rb")
-    fs.setPos(54)
-    if fs.isValid() == 0 {
-        return null
-    }
-    //read file
-    data = fs.readBytes()
-    fs.close()
-    //converting BMP bgr to rgb
-    i=0; for i < w * h, i++ {
-        index = i * 3
-        b = data[index]
-        r = data[index+2]
-        data[index] = r
-        data[index+2] = b
-    }
-
-    glGenTextures(1, &texture)
-    glBindTexture(noCheck(GL_TEXTURE_2D), texture)
-    glTexEnvf(noCheck(GL_TEXTURE_ENV), noCheck(GL_TEXTURE_ENV_MODE), noCheck(GL_MODULATE))
-    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MIN_FILTER), noCheck(GL_LINEAR_MIPMAP_NEAREST))
-    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MAG_FILTER), noCheck(GL_LINEAR))
-    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_WRAP_S), noCheck(GL_REPEAT))
-    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_WRAP_T), noCheck(GL_REPEAT))
-    gluBuild2DMipmaps(noCheck(GL_TEXTURE_2D), 3, w, h, noCheck(GL_RGB), noCheck(GL_UNSIGNED_BYTE), arrAsStr(data))
-    return texture
-}
-
-
-//Used for describing a RGB color value.
-//This can also hold a texture.
-struct rgb {
-    r: float
-    g: float
-    b: float
-
-    isTex: bool = false
-    tex: GLuint
-    texW: int
-    texH: int
-}
-
-//Used for making a rgb structure with the r, g and b values.
-rgb(r float, g float, b float) rgb {
-    color = rgb{
-        r,
-        g,
-        b
-    }
-    return color
-}
-
-//Used for making a rgb structure with a structure.
-rgbTexture(path cpstring, w int, h int) rgb {
-    c = rgb{
-        isTex: true
-        tex: BMPtoTex(path, w, h)
-        texW: w
-        texH: h
-    }
-    return c
-}
-
-//Used for setting the drawing color/texture.
-setDrawingColor(color rgb) bool {
-    if color.isTex == false {
-        glColor3f(color.r, color.g, color.b)
-    } else {
-        glColor3f(1.0, 1.0, 1.0)
-        glBindTexture(noCheck(GL_TEXTURE_2D), color.tex)
-        glEnable(noCheck(GL_TEXTURE_2D))
-    }
-    return color.isTex
-}
-
-//Used for drawing a filled-circle.
-drawCircle(v vec, radius float, color rgb) {
-    setDrawingColor(color)
-    glBegin(noCheck(GL_TRIANGLE_FAN))
-    texX = 0.5
-    texY = 0.5
-    glTexCoord2f(texX, texY); glVertex2f(v.x, v.y)
-
-
-    twicePi = 2.0 * 3.142
-    res int = radius * 30.0
-    if res < 20 {
-        res = 20
-    }
-    i=0; for i <= res, i++ {
-        xr = radius * cos(<float>i * twicePi / <float>res)
-        yr = radius * sin(<float>i * twicePi / <float>res)
-        glTexCoord2f(texX + xr, texY + yr); glVertex2f(v.x + xr, v.y + yr)
-    }
-    glEnd()
-    glDisable(noCheck(GL_TEXTURE_2D))
-}
-
-//Used for drawing a box.
-drawBox(v vec, w float, h float, color rgb) {
-    isTex = setDrawingColor(color)
-    glBegin(noCheck(GL_TRIANGLE_FAN))
-    hw = w / 2.0
-    hh = h / 2.0
-    glTexCoord2f(0.0,1.0); glVertex2f(v.x-hw, v.y+hh)
-    glTexCoord2f(1.0,1.0); glVertex2f(v.x+hw, v.y+hh)
-    glTexCoord2f(1.0,0.0); glVertex2f(v.x+hw, v.y-hh)
-    glTexCoord2f(0.0,0.0); glVertex2f(v.x-hw, v.y-hh)
-    glEnd()
-    glDisable(noCheck(GL_TEXTURE_2D))
-}
-
-//Draws a line. the width is in pixels
-drawLine(v1 vec, v2 vec, w float, color rgb) {
-    isTex = setDrawingColor(color)
-    glLineWidth(w)
-    glBegin(noCheck(GL_LINES))
-    glVertex2f(v1.x, v1.y)
-    glVertex2f(v2.x, v2.y)
-    glEnd()
-    glDisable(noCheck(GL_TEXTURE_2D))
-}
-
-//Used for drawing a custom shape.
-drawShape(shape []float, color rgb) {
-    if len(shape) == 0 {
-        return
-    }
-    isTex = setDrawingColor(color)
-    glBegin(noCheck(GL_TRIANGLE_FAN))
-    c = vec{}
-    centerCoords(&c, shape)
-    i=0; for i < len(shape), i+=2 {
-        glTexCoord2f(shape[i] - c.x + 0.5, shape[i+1] - c.y + 0.5); glVertex2f(shape[i], shape[i+1])
-    }
-    glEnd()
-    glDisable(noCheck(GL_TEXTURE_2D))
-}
-
-//Used for drawing text.
-drawText(v vec, color rgb, font ptr, str cpstring) {
-    glColor3f(color.r, color.g, color.b)
-    glRasterPos2f(v.x, v.y)
-    glutBitmapString(font, str)
-}
-
-// Used for getting the center of a shape.
-centerCoords(v vec*, shape []float) {
-    tmp = vec{}
-    i=0; for i < len(shape), i+=2 {
-        tmp.x = tmp.x + shape[i]
-        tmp.y = tmp.y + shape[i+1]
-    }
-    div = i / 2
-    v.x = tmp.x / <float>div
-    v.y = tmp.y / <float>div    
-}
-
-
-//Used for clearing the screen each frame.
-clearFrame() {
-    glClearColor(0.0,0.0,0.0,1.0)
-    glClear(noCheck(GL_COLOR_BUFFER_BIT))
-}
-
-//Used for asking a new frame.
-redrawFrame() {
-    glutPostRedisplay()
-}
-
-//Used for sending the frame.
-sendFrame() {
-    glutSwapBuffers()
-}
 
 #define __VBAH_display()
 #define __VBAH_idle()
@@ -436,6 +19,7 @@ sendFrame() {
 #define __VBAH_drag(x int, y int)
 #define __VBAH_keyboard(key char, x int, y int)
 #define __VBAH_resize(w int, h int)
+#define __VBAH_keyboardSpecial(key int, x int, y int)
 
 //Wrapper for a window.
 struct window {
@@ -455,10 +39,28 @@ struct window {
     display: function()
     idle: function()
     init: function()
+    
+    //Mouse button press callback
+    //button, pressed, x, y
+    //x and y are in pixel coordinates, use pixelToCoors() to convert them.
     click: function(int, bool, int, int)
+
+    //Mouse position callback,
+    //x, y in pixel coordinates, use pixelToCoors() to convert them.
     move: function(int, int)
+
+    //Mouse mouvement (dragging) callback
+    //x, y in pixel coordinates, use pixelToCoors() to convert them.
     drag: function(int, int)
-    keyboard: function(char, int, int)
+    
+    //Keyboard stroke callback.
+    //key (represented as a character), modifier (none, shift, ctrl, alt)
+    //note that:  escape=27, backspace=8, del=127
+    keyboard: function(char, int)
+    
+    //Keyboard special keys callback.
+    //key (f1-12, left-up-right-down, pageUp-pageDown, home, end, insert)
+    keyboardSpecial: function(int)
 
     delta: float
     lastTimeDelta: float
@@ -477,6 +79,7 @@ struct window {
         glutMotionFunc(__VBAH_drag)
         glutKeyboardFunc(__VBAH_keyboard)
         glutReshapeFunc(__VBAH_resize)
+        glutSpecialFunc(__VBAH_keyboardSpecial)
         init = this.init
         if init != null {
             init()
@@ -585,11 +188,16 @@ __VBAH_drag(x int, y int) {
 __VBAH_keyboard(key char, x int, y int) {
     kb = WINDOW_PTR.keyboard
     if kb != null {
-        kb(key, x, y)
+        kb(key, glutGetModifiers())
     }
 }
 
-#define pixelsToCoords(v vec*)
+__VBAH_keyboardSpecial(key int, x int, y int) {
+    kb = WINDOW_PTR.keyboardSpecial
+    if kb != null {
+        kb(key)
+    }
+}
 
 __VBAH_resize(w int, h int) {
     ar = <float>h/<float>w
@@ -612,22 +220,6 @@ __VBAH_resize(w int, h int) {
         WINDOW_PTR.tb = 1.0 * ar
     }
     glMatrixMode(noCheck(GL_MODELVIEW))
-}
-
-//Used for converting position in pixels to window coordinates position.
-pixelsToCoords(v vec*) {
-    m float* = memoryAlloc(SIZE_OF_FLOAT * 16)
-    p float* = memoryAlloc(SIZE_OF_FLOAT * 16)
-    vp int* = memoryAlloc(SIZE_OF_INT * 4)
-    glGetDoublev(noCheck(GL_MODELVIEW_MATRIX), m)
-    glGetIntegerv(noCheck(GL_VIEWPORT), vp)
-    glGetDoublev(noCheck(GL_PROJECTION_MATRIX), p)
-    nx float
-    ny float
-    nz float
-    gluUnProject(v.x, v.y, 0.0, m, p, vp, &nx, &ny, &nz)
-    v.x = nx
-    v.y = ny * -1.0
 }
 
 //Used for making a window.

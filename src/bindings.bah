@@ -1,0 +1,90 @@
+#include "<GL/gl.h>"
+#include "<GL/glut.h>"
+
+#linux {
+    #cLib "lGL" "lglut" "lGLU"
+
+    #static {
+        #warning "You may need to compile the program as a dynamic executable (-d)."
+    }
+}
+
+#windows {
+
+    #static {
+        #cLib "lfreeglut_static"
+    }
+
+    #dynamic {
+        #cLib "lfreeglut"
+    }
+
+    #cLib "lopengl32"  "lGLU32" "Wl,--subsystem,windows"
+}
+
+#define! GLuint uint
+#define! GLenum ptr
+
+
+#define! cos(f float) float
+#define! sin(f float) float
+#define! sqrt(f float) float
+
+#define! glClearColor(r float, g float, b float, a float)
+#define! glClear(b ptr)
+#define! glBegin(c ptr)
+#define! glColor3f(r float, g float, b float)
+#define! glVertex2f( x float, y float )
+#define! glEnd()
+#define! glutSwapBuffers()
+
+#define! glutInit(argc int*, char**)
+#define! glutInitDisplayMode(dm ptr)
+#define! glutInitWindowSize(w int,h int)
+#define! glutInitWindowPosition(x int,y int)
+#define! glutCreateWindow(t cpstring)
+#define! glutDisplayFunc(f function())
+#define! glutIdleFunc(f function())
+#define! glutPostRedisplay()
+#define! glutMainLoop()
+#define! glColor3f(r float, g float, b float) 
+#define! glRasterPos2f(x float, y float)
+#define! glutBitmapString(font ptr, str cpstring)
+#define! glEnable(m ptr)
+#define! glDisable(m ptr)
+#define! glGenTextures(i int, t GLuint*)
+#define! glBindTexture(tm ptr, t GLuint)
+#define! glTexEnvf(tenv ptr, tm ptr, mod ptr)
+#define! glTexParameterf(tm ptr, mn ptr, mv ptr)
+#define! gluBuild2DMipmaps(tm ptr, nb int, w int, h int, colors ptr, cont ptr, data cpstring)
+#define! glTexCoord2f(x float, y float)
+#define! glutMouseFunc(f ptr)
+#define! glutMotionFunc(f ptr)
+#define! glutPassiveMotionFunc(f ptr)
+#define! glutKeyboardFunc(f ptr)
+#define! glutFullScreen()
+#define! glutGet(m ptr) int
+#define! gluOrtho2D(l float, r float, b float, t float)
+#define! glViewport(l int, t int, r int, b int)
+#define! glMatrixMode(m ptr)
+#define! glLoadIdentity()
+#define! glutReshapeFunc(f ptr)
+#define! gluUnProject(wx float, wy float, wz float, m ptr, p ptr, v ptr, x float*, y float*, z float*)
+#define! glGetDoublev(w ptr, t float*)
+#define! glGetIntegerv(w ptr, t int*)
+#define! glPushMatrix()
+#define! glPopMatrix()
+#define! glTranslated(x float, y float, z float)
+#define! glRotated(deg float, x float, y float, z float)
+#define! glutReshapeWindow(w int, h int)
+#define! glLineWidth(w float)
+#define! glGenFramebuffers(nb int, n GLuint*)
+#define! glBindFramebuffer(w ptr, n GLuint)
+#define! glTexImage2D(t ptr, m int, c1 ptr, w int, h int, d int, c2 ptr, it ptr, im ptr)
+#define! glFramebufferTexture(w ptr, ca ptr, t GLuint, nb int)
+#define! glDrawBuffers(l int, db GLenum*)
+#define! glActiveTexture(t GLuint)
+#define! glutBitmapCharacter(f ptr, c char)
+#define! glutBitmapWidth(font ptr, c char) int
+#define! glutSpecialFunc(fn ptr)
+#define! glutGetModifiers() int
