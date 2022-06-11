@@ -1,0 +1,71 @@
+/////////////////////////////////////////////////////////////
+//       Shapes demo using OpenGL and GLUT in Bah.         //
+//         To compile, use 'bah ./text.bah -d'.            //
+//                                                         //
+//                                     © Aloïs Laurent Boë //
+/////////////////////////////////////////////////////////////
+
+#import "iostream.bah"
+
+#import "../vbah.bah"
+
+win window*
+
+helloFont font
+
+vbahFont font
+m = []textMarkup
+
+
+display() {
+    textSize = vec(<float>helloFont.calcWidth("Hello world!"), 0.0)
+    pixelsDimToCoords(&textSize)
+    
+    helloFont.write(vec(0.0 - textSize.x/2.0 ,0.0), rgb(1.0,1.0,1.0), "Hello world!")
+
+    textSize = vec(<float>vbahFont.calcWidth("VBAH"), 40.0)
+    pixelsDimToCoords(&textSize)
+
+    vbahFont.writeMarkup(vec(0.0 - textSize.x/2.0, textSize.y), m, 0, "VBAH")
+
+}
+
+init() {
+    helloFont = font{}
+    helloFont.load("./assets/font/DroidSansMono.ttf")
+    helloFont.setSize(20)
+
+    vbahFont = font{}
+    vbahFont.load("./assets/font/Fast Hand.ttf")
+    vbahFont.setSize(20)
+
+    m = []textMarkup{
+        textMarkup{
+            pos: 0
+            color: rgb(1.00,0.00,0.00)
+        },
+        textMarkup{
+            pos: 1
+            color: rgb(1.00,1.00,0.00)
+        },
+        textMarkup{
+            pos: 2
+            color: rgb(0.00,1.00,0.33)
+        },
+        textMarkup{
+            pos: 3
+            color: rgb(0.00,0.80,1.00)
+        }
+    }
+}
+
+main(args []cpstring) int {
+    //launching the window
+    
+    win = window(600, 600, "Text")
+    win.display = display
+    win.init = init
+    win.launch()
+
+    return 0
+}

@@ -13,6 +13,8 @@
 
 win window*
 
+textFont font
+
 //Used for generating a random float between 0.0 and 1.0.
 randFloat() float {
     f = <float>randomInRange(0, 100000) / 100000.0
@@ -224,13 +226,15 @@ display() {
     //drawing the fps count at the top left of the window.
     //0px from the left
     //24px from the top
-    tp = vec(0.0, 24.0)
+    tp = vec(0.0, 16.0)
     pixelsToCoords(&tp)
-    drawText(tp, rgb(1.0, 1.0, 1.0), VBAH_font_times_roman_24, intToStr(win.fps())+" fps\n"+intToStr(particles.nbParts)+" particles\n"+intToStr(particles.nbCol)+" col/frame")
+    textFont.write(tp, rgb(1.0, 1.0, 1.0), intToStr(win.fps())+" fps\n"+intToStr(particles.nbParts)+" particles\n"+intToStr(particles.nbCol)+" col/frame")
+    // drawText(tp, rgb(1.0, 1.0, 1.0), VBAH_font_times_roman_24, intToStr(win.fps())+" fps\n"+intToStr(particles.nbParts)+" particles\n"+intToStr(particles.nbCol)+" col/frame")
 
-    tp = vec(0.0, <float>win.height - 34.0)
+    tp = vec(0.0, <float>win.height - 20.0)
     pixelsToCoords(&tp)
-    drawText(tp, rgb(0.8, 0.8, 0.8), VBAH_font_times_roman_24, "Press 'f' to toggle fullscreen.\nPress 'g' to toggle gravity.")
+    textFont.write(tp, rgb(0.8, 0.8, 0.8), "Press 'f' to toggle fullscreen.\nPress 'g' to toggle gravity.")
+    // drawText(tp, rgb(0.8, 0.8, 0.8), VBAH_font_times_roman_24, "Press 'f' to toggle fullscreen.\nPress 'g' to toggle gravity.")
 
 }
 
@@ -266,6 +270,12 @@ kb(key char, mod int) {
     }
 }
 
+init() {
+    textFont = font{}
+    textFont.load("./assets/font/DroidSansMono.ttf")
+    textFont.setSize(16)
+}
+
 main(args []cpstring) int {
     //particle system
     particles = ps{}
@@ -279,6 +289,7 @@ main(args []cpstring) int {
     win.display = display
     win.click = click
     win.keyboard = kb
+    win.init = init
     win.drag = handleMouse
     win.launch()
 
