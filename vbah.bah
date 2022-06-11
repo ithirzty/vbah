@@ -62,6 +62,9 @@ struct window {
     //key (f1-12, left-up-right-down, pageUp-pageDown, home, end, insert)
     keyboardSpecial: function(int)
 
+    //Resize callback.
+    resize: function()
+
     delta: float
     lastTimeDelta: float
 
@@ -96,8 +99,6 @@ struct window {
         this.lastTimeDelta = nltd
         delta = delta / 1000000000.0
         this.delta = delta
-        // tmpD = <float>getTimeUnix() - this.tmpDelta
-        // this.delta = tmpD / 1000000000.0
     }
 
     //Used for getting the current number of frame per second.
@@ -220,6 +221,10 @@ __VBAH_resize(w int, h int) {
         WINDOW_PTR.tb = 1.0 * ar
     }
     glMatrixMode(noCheck(GL_MODELVIEW))
+    rsFn = WINDOW_PTR.resize
+    if rsFn != null {
+        rsFn()
+    }
 }
 
 //Used for making a window.
@@ -236,4 +241,11 @@ window(w int, h int, t cpstring) window* {
     glutInitDisplayMode(noCheck(GLUT_DOUBLE | GLUT_RGB))
     WINDOW_PTR = win
     return win
+}
+
+//Translates a dimension in pixels to a dimension in window coordinates.
+pixelsDimToCoords(v vec*) {
+    v.x += <float>(WINDOW_PTR.width / 2)
+    v.y += <float>(WINDOW_PTR.height / 2)
+    pixelsToCoords(v)
 }

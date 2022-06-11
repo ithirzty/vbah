@@ -1,32 +1,312 @@
-struct textFont {
-    height: float
-    font: ptr
+#include "<ft2build.h>"
+#include "<freetype/freetype.h>"
+
+#linux {
+    #cLib "w $(pkg-config --libs freetype2) $(pkg-config --cflags freetype2)"
+}
+#windows {
+    #cLib "lfreetype"
 }
 
-calcTextWidth(f textFont, s cpstring) vec {
-    r = vec{y: f.height+2.0}
-    cw = 0.0
-    l = strlen(s)
-    i=0; for i < l, i++ {
-        if s[i] == <char>10 {
-            r.y += f.height+2.0
-            if cw > r.x {
-                r.x = cw
-            }
-            cw = 0.0
-        } else {
-            cw += <float>glutBitmapWidth(f.font, s[i])
-        }
-        if cw > r.x {
-            r.x = cw
+#define! FT_Library ptr
+#define! FT_Face ptr
+#define! FT_Init_FreeType(l FT_Library*) int
+#define! FT_New_Face(l FT_Library, p cpstring, i int, f FT_Face*) int
+#define! FT_Done_Face(f FT_Face*)
+#define! FT_Set_Char_Size(f FT_Face, w int, h int, resH int, resV int) int
+#define! FT_Set_Pixel_Sizes(f FT_Face, w int, h int)
+#define! FT_GlyphSlot ptr
+#define! FT_Get_Char_Index(f FT_Face, c uint) uint
+#define! FT_Load_Char(f FT_Face, c uint, f int) int
+
+#define! GLubyte char
+#define! glGenLists(s int) GLuint
+#define! glNewList(list GLuint, mode GLenum)
+#define! glBitmap(w int, h int, xo int, yo int, xmove int, ymove int, bmp GLubyte*)
+#define! glEndList()
+#define! FT_Select_Charmap(f FT_Face, e int) int
+
+#define! glWindowPos3dv(pos float*)
+
+#define pixelsDimToCoords(v vec*)
+
+struct! FT_Bitmap_ {
+    rows: uint32
+    width: uint32
+    pitch: int32
+    num_grays: ushort
+    pixel_mode: char
+    palette_mode: char
+    palette: ptr
+}
+
+//Maps a position (index) in the string to write and a color to set at its position.
+struct textMarkup {
+    pos: uint
+    color: rgb
+}
+
+//Sets a color to a position in an array of textMarkup.
+//This will replace any older color with the same position.
+setMarkupColor(pos uint, color rgb, m []textMarkup) {
+    i=0; for i < len(m), i++ {
+        if m[i].pos == pos {
+            m[i].color = color
+            return
         }
     }
-    return r
+    m[len(m)] = textMarkup{
+        pos: pos
+        color: color
+    }
 }
 
-VBAH_font_helvetica_10 = textFont{10.0, noCheck(GLUT_BITMAP_HELVETICA_10)}
-VBAH_font_helvetica_12 = textFont{12.0, noCheck(GLUT_BITMAP_HELVETICA_12)}
-VBAH_font_helvetica_18 = textFont{18.0, noCheck(GLUT_BITMAP_HELVETICA_18)}
+//This is an internal struct to map a char to its bitmap value.
+//This is used to not re-make the bitmap on each write call.
+struct charToBmp {
+    c: char
+    b: []char
+}
 
-VBAH_font_times_roman_10 = textFont{10.0, noCheck(GLUT_BITMAP_TIMES_ROMAN_10)}
-VBAH_font_times_roman_24 = textFont{24.0, noCheck(GLUT_BITMAP_TIMES_ROMAN_24)}
+//A wrapper used for writting text with a specified font.
+struct font {
+    lib: FT_Library*
+    face: FT_Face*
+    bitmaps: []charToBmp*
+    charSize: int = -1
+
+    //Loads the font at the specified path.
+    load(path cpstring) {
+        if this.face != null {
+            FT_Done_Face(this.face)
+        }
+        this.lib = memoryAlloc(noCheck(sizeof(FT_Library)))
+        err = FT_Init_FreeType(this.lib)
+        if err != 0 {
+            panic("error loading freetype2")
+        }
+        FTlib = this.lib
+        this.face = memoryAlloc(noCheck(sizeof(FT_Face)))
+        err = FT_New_Face(*FTlib, path, 0, this.face)
+        face = this.face
+        if err != 0 {
+            panic("error loading font")
+        }
+    }
+
+    //Sets the text size.
+    setSize(s int) {
+        clear(this.bitmaps)
+        face = this.face
+        err = FT_Set_Char_Size(*face, s * 64, s * 64, 96, 128)
+        if err != 0 {
+            panic("error setting font size")
+        }
+        this.charSize = s
+    }
+
+    //Write some text at the specified position with the specified color.
+    //You will need to call .setSize() at least once before calling this function.
+    write(pos vec, color rgb, str cpstring) {
+        setDrawingColor(color)
+        if this.charSize == -1 {
+            panic("error writting text to frame, font size is not set. Use .setSize().")
+        }
+
+        face = this.face
+        faceDP = *face
+        glyph_index = 0
+        slot FT_GlyphSlot = noCheck(faceDP->glyph)
+        l = strlen(str)
+        n = 0
+        glRasterPos2f(pos.x, pos.y)
+        n=0; for n < l, n++ {
+            c uint = str[n]
+            if c == 10 {
+                lh = vec(0.0, <float>this.charSize)
+                pixelsDimToCoords(&lh)
+                pos.y += lh.y
+                glRasterPos2f(pos.x, pos.y)
+                continue
+            }
+            err = FT_Load_Char(*face, <uint32>c, noCheck(FT_LOAD_RENDER | FT_LOAD_TARGET_MONO))
+            if err != 0 {
+                println("Error loading font glyph for char '"+charToString(str[n])+"'.")
+                continue
+            }
+            bitmap = new FT_Bitmap_
+            *bitmap = noCheck(slot->bitmap)
+            raw cpstring = noCheck(bitmap->buffer)
+            w = bitmap.width
+            h = bitmap.rows
+            
+            bmp cpstring
+            //if texture found use it
+            i=0; for i < len(this.bitmaps), i++ {
+                ctt = this.bitmaps[i]
+                if ctt.c == str[n] {
+                    bmp = cArr(ctt.b)
+                    break
+                }
+            }
+
+            // if bitmap not found make it
+            if i == len(this.bitmaps) {
+                data = []char
+                allocateArray(data, bitmap.pitch*h)
+                cR = bitmap.pitch * h
+                row=0; for row < h, row++ {
+                    col=0; for col < bitmap.pitch, col++ {
+                        data[cR + col] = raw[col + (row * bitmap.pitch)]
+                    }
+                    cR -= bitmap.pitch
+                }
+                bmp = cArr(data)
+                this.bitmaps[len(this.bitmaps)] = new charToBmp {
+                    c: str[n]
+                    b: data
+                }
+            }
+            
+            //drawing the texture
+            ax int = noCheck(slot->advance.x)
+            ay int = noCheck(slot->advance.y)
+            originY int = 0 - (<int>noCheck(slot->bitmap_top) - <int>noCheck(slot->bitmap.rows)) / 2
+            glBitmap(w, h, 0 - noCheck(slot->bitmap_left),
+                originY,
+                (ax>>6), (ay>>6), <ptr>bmp)
+        }
+
+    }
+
+    //Write some text at the specified position with the specified markup.
+    //You will need to call .setSize() at least once before calling this function.
+    //The string printed also starts at the specified offset.
+    writeMarkup(pos vec, colors []textMarkup, offset int, str cpstring) {
+        if this.charSize == -1 {
+            panic("error writting text to frame, font size is not set. Use .setSize().")
+        }
+
+        face = this.face
+        faceDP = *face
+        glyph_index = 0
+        slot FT_GlyphSlot = noCheck(faceDP->glyph)
+        l = strlen(str)
+        n = 0
+        if offset != 0 {
+            j=len(colors)-1; for j >= 0, j-- {
+                if colors[j].pos <= offset {
+                    setDrawingColor(colors[j].color)
+                    break
+                }
+            }
+        }
+        glRasterPos2f(pos.x, pos.y)
+        n=offset; for n < l, n++ {
+            c uint = str[n]
+            j=0; for j < len(colors), j++ {
+                if colors[j].pos == n {
+                    setDrawingColor(colors[j].color)
+                    currPos float* = memoryAlloc(sizeof(float) * 4)
+                    glGetDoublev(noCheck(GL_CURRENT_RASTER_POSITION), currPos)
+                    glWindowPos3dv(currPos)
+                    break
+                }
+            }
+            if c == 10 {
+                lh = vec(0.0, <float>this.charSize)
+                pixelsDimToCoords(&lh)
+                pos.y += lh.y
+                glRasterPos2f(pos.x, pos.y)
+                continue
+            }
+
+            err = FT_Load_Char(*face, <uint32>c, noCheck(FT_LOAD_RENDER | FT_LOAD_TARGET_MONO))
+            if err != 0 {
+                println("Error loading font glyph for char '"+charToString(str[n])+"'.")
+                continue
+            }
+            bitmap = new FT_Bitmap_
+            *bitmap = noCheck(slot->bitmap)
+            raw cpstring = noCheck(bitmap->buffer)
+            w = bitmap.width
+            h = bitmap.rows
+            
+            bmp cpstring
+            //if texture found use it
+            i=0; for i < len(this.bitmaps), i++ {
+                ctt = this.bitmaps[i]
+                if ctt.c == str[n] {
+                    bmp = cArr(ctt.b)
+                    break
+                }
+            }
+
+            // if bitmap not found make it
+            if i == len(this.bitmaps) {
+                data = []char
+                allocateArray(data, bitmap.pitch*h)
+                cR = bitmap.pitch * h
+                row=0; for row < h, row++ {
+                    col=0; for col < bitmap.pitch, col++ {
+                        data[cR + col] = raw[col + (row * bitmap.pitch)]
+                    }
+                    cR -= bitmap.pitch
+                }
+                bmp = cArr(data)
+                this.bitmaps[len(this.bitmaps)] = new charToBmp {
+                    c: str[n]
+                    b: data
+                }
+            }
+            
+            //drawing the texture
+            ax int = noCheck(slot->advance.x)
+            ay int = noCheck(slot->advance.y)
+            originY int = 0 - (<int>noCheck(slot->bitmap_top) - <int>noCheck(slot->bitmap.rows)) / 2
+            glBitmap(w, h, 0 - noCheck(slot->bitmap_left),
+                originY,
+                (ax>>6), (ay>>6), <ptr>bmp)
+        }
+
+    }
+
+    //Calculates the width of specified text.
+    //Returns the value in pixels.
+    calcWidth(s cpstring) int {
+        if this.charSize == -1 {
+            panic("error writting text to frame, font size is not set. Use .setSize().")
+        }
+        face = this.face
+        faceDP = *face 
+        pen_x = 300
+        pen_y = 200
+        glyph_index = 0
+        slot FT_GlyphSlot = noCheck(faceDP->glyph)
+        str = strAsArr(s)
+        width = 0
+        max = 0
+        n=0; for n < len(str), n++ {
+            if str[n] == <char>10 {
+                if width > max {
+                    max = width
+                }
+                width = 0
+            }
+            cInd = FT_Get_Char_Index(*face, <uint>str[n])
+            err = FT_Load_Char(*face, cInd, noCheck(FT_LOAD_RENDER | FT_LOAD_MONOCHROME))
+            if err != 0 {
+                println("Error loading font glyph for char '"+charToString(str[n])+"'.")
+                continue
+            }
+            bitmap = new FT_Bitmap_
+            *bitmap = noCheck(slot->bitmap)
+            ax int = noCheck(slot->advance.x) >> 6
+            width += ax
+        }
+        if width > max {
+            max = width
+        }
+        return max
+    }
+}

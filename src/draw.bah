@@ -63,11 +63,11 @@ drawShape(shape []float, color rgb) {
 }
 
 //Used for drawing text.
-drawText(v vec, color rgb, font textFont, str cpstring) {
-    setDrawingColor(color)
-    glRasterPos2f(v.x, v.y)
-    glutBitmapString(font.font, str)
-}
+// drawText(v vec, color rgb, font textFont, str cpstring) {
+//     setDrawingColor(color)
+//     glRasterPos2f(v.x, v.y)
+//     glutBitmapString(font.font, str)
+// }
 
 
 //Used for clearing the screen each frame.
