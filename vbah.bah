@@ -140,6 +140,11 @@ struct window {
 WINDOW_PTR window*
 
 __VBAH_display() {
+    i=0; for i < len(VBAH_texToDraw), i++ {
+        ttd = VBAH_texToDraw[i]
+        ttd.t.directDrawTo(ttd.drawFn, ttd.arg)
+    }
+    clear(VBAH_texToDraw)
     if WINDOW_PTR.autoClear == true {
         clearFrame()
     }
@@ -248,4 +253,5 @@ pixelsDimToCoords(v vec*) {
     v.x += <float>(WINDOW_PTR.width / 2)
     v.y += <float>(WINDOW_PTR.height / 2)
     pixelsToCoords(v)
+    v.y = 0.0 - v.y
 }

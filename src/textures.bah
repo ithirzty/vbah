@@ -31,6 +31,8 @@ BMPtoTex(path cpstring, w int, h int) GLuint {
 }
 
 
+#define VBAH_addTexToDraw(tp ptr, dfn ptr, arg ptr)
+
 //Used for describing a RGB color value.
 //This can also hold a texture.
 struct rgb {
@@ -40,8 +42,67 @@ struct rgb {
 
     isTex: bool = false
     tex: GLuint
+    texFB: GLuint
     texW: int
     texH: int
+
+    //Used for drawing to a texture.
+    //The passed function will draw to the texture and not the screen.
+    drawTo(drawFn function(ptr), arg ptr) {
+        VBAH_addTexToDraw(this, drawFn, arg)
+        return
+    }
+
+    //This is an internal function, you should known what you're doing if you use it.
+    directDrawTo(drawFn function(ptr), arg ptr) {
+        winW = <float>glutGet(noCheck(GLUT_WINDOW_WIDTH))
+        winH = <float>glutGet(noCheck(GLUT_WINDOW_HEIGHT))
+        //draw to tex
+        glBindTexture(noCheck(GL_TEXTURE_2D), this.tex)
+        glActiveTexture(this.tex)
+        glBindFramebuffer(noCheck(GL_FRAMEBUFFER), this.texFB)
+        glViewport(0,0,this.texW,this.texH)
+        glMatrixMode(noCheck(GL_PROJECTION))
+        glLoadIdentity()
+        gluOrtho2D(0.0, <float>this.texW, <float>this.texH, 0.0)
+        glMatrixMode(noCheck(GL_MODELVIEW))
+        glClearColor(1.0, 1.0, 1.0, 1.0)
+        //draw
+        drawFn(arg)
+        //draw to screen
+        glBindTexture(noCheck(GL_TEXTURE_2D), <GLuint>0)
+        glBindFramebuffer(noCheck(GL_FRAMEBUFFER), <GLuint>0)
+        
+        glViewport(0,0,<int>winW,<int>winH)
+        ar = winH / winW
+        glMatrixMode(noCheck(GL_PROJECTION))
+        glLoadIdentity()
+        if winW >= winH {
+            gluOrtho2D(-1.0/ar, 1.0/ar, -1.0, 1.0)      
+        } else {
+            gluOrtho2D(-1.0, 1.0, -1.0*ar, 1.0*ar)
+        }
+        glMatrixMode(noCheck(GL_MODELVIEW))
+    }
+
+}
+
+struct rgbToDraw {
+    t: rgb
+    drawFn: ptr
+    arg: ptr
+}
+
+VBAH_texToDraw = []rgbToDraw
+
+//Internal function to add a texture to the draw list.
+VBAH_addTexToDraw(tp ptr, dfn ptr, arg ptr) {
+    t rgb* = tp
+    VBAH_texToDraw[len(VBAH_texToDraw)] = rgbToDraw {
+        t: *t
+        drawFn: dfn
+        arg: arg
+    }
 }
 
 //Used for making a rgb structure with the r, g and b values.
@@ -75,4 +136,39 @@ setDrawingColor(color rgb) bool {
         glEnable(noCheck(GL_TEXTURE_2D))
     }
     return color.isTex
+}
+
+
+makeTexture(w int, h int) rgb {
+    fbName GLuint = 0
+    glGenFramebuffers(1, &fbName)
+    glBindFramebuffer(noCheck(GL_FRAMEBUFFER), fbName)
+
+    tex GLuint
+    glGenTextures(1, &tex)
+    glBindTexture(noCheck(GL_TEXTURE_2D), tex)
+    glTexImage2D(
+                noCheck(GL_TEXTURE_2D), 0, noCheck(GL_RGB), w, h,
+                0, noCheck(GL_RGB), noCheck(GL_UNSIGNED_BYTE), 0
+                )
+    glTexEnvf(noCheck(GL_TEXTURE_ENV), noCheck(GL_TEXTURE_ENV_MODE), noCheck(GL_MODULATE))
+    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MIN_FILTER), noCheck(GL_NEAREST))
+    glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MAG_FILTER), noCheck(GL_NEAREST))
+    
+    glFramebufferTexture(noCheck(GL_FRAMEBUFFER), noCheck(GL_COLOR_ATTACHMENT0), tex, 0)
+
+    drawBuff GLenum = noCheck(GL_COLOR_ATTACHMENT0)
+
+    glDrawBuffers(1, &drawBuff)
+
+    r = rgb{
+        isTex: true
+        tex: tex
+        texFB: fbName
+        texW: w
+        texH: h
+    }
+
+    glBindFramebuffer(noCheck(GL_FRAMEBUFFER), <GLuint>0)
+    return r
 }

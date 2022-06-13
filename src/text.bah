@@ -125,7 +125,7 @@ struct font {
             if c == 10 {
                 lh = vec(0.0, <float>this.charSize)
                 pixelsDimToCoords(&lh)
-                pos.y += lh.y
+                pos.y -= lh.y
                 glRasterPos2f(pos.x, pos.y)
                 continue
             }
@@ -216,7 +216,7 @@ struct font {
             if c == 10 {
                 lh = vec(0.0, <float>this.charSize)
                 pixelsDimToCoords(&lh)
-                pos.y += lh.y
+                pos.y -= lh.y
                 glRasterPos2f(pos.x, pos.y)
                 continue
             }

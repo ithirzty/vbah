@@ -13,21 +13,44 @@
 #import "../vbah.bah"
 
 win window*
-tex rgb
+tex1 rgb
+tex2 rgb
 
 display() {
-    drawBox(vec(0.0, 0.0), 0.50, 0.50, tex)
-    drawCircle(vec(0.0, 0.5), 0.25, tex)
+    //draw a box with the imported bmp as texture
+    drawBox(vec(0.0, 0.0), 0.50, 0.50, tex1)
+    
+    //tex2 has dimensions 200px per 200px
+    tex2Dim = vec(200.0, 200.0)
+    //convert its dimension to window coordinates dimensions
+    pixelsDimToCoords(&tex2Dim)
+
+    //draw a second box below the first with tex2 as texture
+    drawBox(vec(0.0, win.bb + tex2Dim.y / 2.0), tex2Dim.x, tex2Dim.y, tex2)
+}
+
+// the function that will draw to tex2
+// notice that the coordinates system is now in pixels
+// with [0.0;0.0] beeing the top left corner
+tex2DrawFn(arg ptr) {
+    //sets the background of the texture white
+    drawBox(vec(100.0, 100.0), 200.0, 200.0, rgb(1.0, 1.0, 1.0))
+    //draws a red circle in the middle
+    drawCircle(vec(100.0, 100.0), 50.0, rgb(1.0, 0.0, 0.0))
 }
 
 init() {
+    //imports the bmp image and saves it inside a texture "tex1"
     //Note: texture from: https://www.vecteezy.com/free-vector/lines
-    tex = rgbTexture("./assets/tex.bmp", 1920, 1229)
+    tex1 = rgbTexture("./assets/tex.bmp", 1920, 1229)
+    //makes a new texture "tex2"
+    tex2 = makeTexture(200, 200)
+    //draw to tex2 with the tex2DrawFn function
+    tex2.drawTo(tex2DrawFn, null)
 }
 
 main(args []cpstring) int {
     //launching the window
-    
     win = window(600, 600, "Textures")
     win.display = display
     win.autoLoop = false
