@@ -12,7 +12,7 @@
 
 #import "../vbah.bah"
 
-win window*
+win = new window
 //Color of the circle
 color rgb
 

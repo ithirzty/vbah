@@ -11,7 +11,7 @@
 
 #import "../vbah.bah"
 
-win window*
+win = new window
 
 textFont font
 

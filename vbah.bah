@@ -137,7 +137,7 @@ struct window {
 
 
 
-WINDOW_PTR window*
+WINDOW_PTR = new window
 
 __VBAH_display() {
     i=0; for i < len(VBAH_texToDraw), i++ {
@@ -234,18 +234,16 @@ __VBAH_resize(w int, h int) {
 
 //Used for making a window.
 window(w int, h int, t cpstring) window* {
-    win = new window
-    win.width = w
-    win.height = h
-    win.title = t
-    win.x = -1
-    win.y = -1
+    WINDOW_PTR.width = w
+    WINDOW_PTR.height = h
+    WINDOW_PTR.title = t
+    WINDOW_PTR.x = -1
+    WINDOW_PTR.y = -1
 
     argc = 0
     glutInit(&argc, null)
     glutInitDisplayMode(noCheck(GLUT_DOUBLE | GLUT_RGB))
-    WINDOW_PTR = win
-    return win
+    return WINDOW_PTR
 }
 
 //Translates a dimension in pixels to a dimension in window coordinates.
