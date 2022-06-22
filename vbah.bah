@@ -9,6 +9,8 @@
 #include "./src/textures.bah"
 #include "./src/text.bah"
 #include "./src/draw.bah"
+#include "./src/animate.bah"
+#include "./src/sound.bah"
 
 
 

@@ -85,6 +85,10 @@ Its usefull fields are:
 - **autoLoop: bool** weither a new frame should be scheduled after the last one finished,
 - **delta: float** the time in second as float that the last frame took to render,
 - **fullscreened: bool** weither the window is in fullscreen mode.
+- **lb: float = -1.0** left border (smallest x coordinate),
+- **tb: float = 1.0** top border (biggest y coordinate),
+- **rb: float = 1.0** right border (biggest x coordinate),
+- **bb: float = -1.0** bottom border (smallest y coordinate).
 
 Its callbacks are:
 - **display: function()**  called to draw a new frame,
@@ -93,11 +97,9 @@ Its callbacks are:
 - **click: function(int, bool, int, int)** called when the mouse is clicked,
 - **move: function(int, int)** called when the mouse is passively moved,
 - **drag: function(int, int)** called when the mouse is draged (button clicked while moving),
-- **keyboard: function(char, int, int)** called when a key is pressed on the keyboard,
-- **lb: float = -1.0** left border (smallest x coordinate),
-- **tb: float = 1.0** top border (biggest y coordinate),
-- **rb: float = 1.0** right border (biggest x coordinate),
-- **bb: float = -1.0** bottom border (smallest y coordinate).
+- **keyboard: function(char, int)** called when a key is pressed on the keyboard the char beeing the key and the int the modifer (shift, crtl, alt...),
+- **keyboardSpecial: function(int)** called when a special key is pressed on the keyboard (f[n] keys, arrows...).
+
 
 Its methods are:
 - **launch()** launches the window,
@@ -107,7 +109,7 @@ Its methods are:
 - **fullscreen()** makes the window fullscreenned.
 
 ### The font structure
-Thw font structures allows you to manipulate text fonts.
+The font structures allows you to manipulate TTF text fonts.
 
 Its methods are:
 - **load(path cpstring)** loads the font at the specified path,
@@ -115,6 +117,22 @@ Its methods are:
 - **write(pos vec, color rgb, str cpstring)** writes text at the specified coordinates with the specified color,
 - **writeMarkup(pos vec, colors []textMarkup, offset int, str cpstring)** same as `.write()` but with a textMarkup array instead of rgb color,
 - **calcWidth(s cpstring) int** calculates the width of a string as pixels value.
+
+### The sound structure
+The sound structures allows you to play sound.
+
+Its methods are:
+- **load(path cpstring)** loads the sound at the specified path,
+- **play()** plays the sound.
+
+### The animation / animationFrames structure
+Theses allows you to keep track of animation of an element.
+
+**animationFrames** is composed of two vectors (from and to) and a duration.<br/>
+You can use **set(from vec, to vec, d float)** to set it up and **get(delta float) vec** to generate a new frame using the window's delta time.
+
+**animation** is like a playlist of animationFrames.<br/>
+Animation frames are stored in **.animations** field and you can use **get(delta float) vec** to generate a new frame using the window's delta time.
 
 
 ## The rgb structure
@@ -140,6 +158,7 @@ The vector *point2* is now the result of a 90 degrees clockwise rotation of the 
 
 ## Examples
 - [Particles](./examples/particles.bah), a simple particle system. <br> ![particles sreenshot](./screenshots/particles.png)
+- [Bricks](./examples/bricks.bah), a simple bricks game<br> ![bricks screenshot](./screenshots/bricks.png)
 - [Textures](./examples/textures.bah), a demonstration of loading textures. <br> ![textures screenshot](./screenshots/textures.png)
 - [Mouse](./examples/mouse.bah), a demonstration of mouse callbacks. <br> ![mouse screenshot](./screenshots/mouse.gif)
 - [Shape](./examples/shape.bah), a demonstration of custom shapes drawing <br> ![shape screenshot](./screenshots/shape.png)

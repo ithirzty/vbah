@@ -30,6 +30,24 @@ struct vec {
         return r
     }
 
+    sub(v2 vec) vec {
+        r = *this
+        r.x  -= v2.x
+        r.y  -= v2.y
+        r.x2 -= v2.x2
+        r.y2 -= v2.y2
+        return r
+    }
+
+    add(v2 vec) vec {
+        r = *this
+        r.x  += v2.x
+        r.y  += v2.y
+        r.x2 += v2.x2
+        r.y2 += v2.y2
+        return r
+    }
+
     set(v vec) {
         this.x = v.x
         this.y = v.y

@@ -20,6 +20,9 @@
     }
 
     #cLib "lopengl32"  "lGLU32" "Wl,--subsystem,windows"
+
+    #define! playSound(p cpstring, hmod int, fdwSound ptr) bool
+
 }
 
 #define! GLuint uint

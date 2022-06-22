@@ -1,0 +1,83 @@
+//Ease in out timing function.
+timingFnEaseInOut(f float) float {
+    return f * f * (3.0 - 2.0 * f)
+}
+
+//Linear timing function
+timginFnLinear(f float) float {
+    return f
+}
+
+//A wrapper for animation from one point to another.
+struct animationFrames {
+    from: vec
+    to: vec
+    t: float
+
+    currT: float = 0.
+
+    timingFn: function(float)float = timingFnEaseInOut
+
+    //Translate position from -> to in d seconds.
+    set(from vec, to vec, d float) {
+        this.from = from
+        this.to = to
+        this.t = d
+        this.currT = 0.
+    }
+
+    //Generates a new frame.
+    //Delta: window.delta
+    get(delta float) vec {
+        if this.currT >= this.t {
+            return this.to
+        }
+        tfn = this.timingFn
+        i = tfn(this.currT / this.t)
+        this.currT += delta
+        
+        diff = this.to - this.from
+        diff.x *= i
+        diff.y *= i
+
+        return this.from + diff
+    }
+
+    finished() bool {
+        return this.currT >= this.t
+    }
+
+}
+
+//A wrapper for animating betweem multiple points.
+struct animation {
+    animations: []animationFrames
+    loop: bool = false
+    currIndex: uint = 0
+
+    //Generates a new frame.
+    //Delta: window.delta
+    get(delta float) vec {
+        if this.currIndex >= len(this.animations) {
+            if this.loop == true {
+                this.currIndex = 0
+                i=0; for i < len(this.animations), i++ {
+                    a = this.animations[i]
+                    a.currT = 0.
+                    this.animations[i] = a
+                }
+            } else {
+                return this.animations[len(this.animations)-1].to
+            }
+        }
+        anim = this.animations[this.currIndex]
+        if anim.currT >= anim.t {
+            this.currIndex++
+            return this.get(delta)
+        }
+        r = anim.get(delta)
+        this.animations[this.currIndex] = anim
+        return r
+    }
+
+}

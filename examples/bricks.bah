@@ -1,0 +1,568 @@
+/////////////////////////////////////////////////////////////
+//     Bricks game demo using OpenGL and GLUT in Bah.      //
+//         To compile, use 'bah ./bricks.bah -d'.          //
+//                                                         //
+//                                     © Aloïs Laurent Boë //
+/////////////////////////////////////////////////////////////
+
+#import "iostream.bah"
+#import "rand.bah"
+#import "../vbah.bah"
+
+//settings
+const nbBricksX = 11
+const nbBricksY = 4
+const gravity = 0.98 //for ending particles
+
+//ressources
+f = font{}
+bricksMarkup = []textMarkup
+titleFont = font{}
+collisionSound = sound{}
+
+//game state enum
+const GAME_NOT_STARTED = 0
+const GAME_RUNNING = 1
+const GAME_FAILED = 2
+const GAME_WON = 3
+//game state
+win = new window //the program's window
+mousePos = 0.0 //current position of the mouse
+score = 0 //current score
+state = GAME_NOT_STARTED //state of the game
+startTime = 0; endTime = 0 //for game duration
+combo = 0 //current combo
+lastCombo = 0 //to draw the combo text only when it is updated
+
+//animations
+textAnimation animation //bouncing
+bricksAnim    animationFrames //random translation
+currBrickAnimFrame = vec(0.0,0.0) //propagates the animation to each brick without advancing it
+
+//Generates a random float between 0.0 and 1.0.
+randFloat() float {
+    fl = <float>randomInRange(0, 100000) / 100000.0
+    return fl
+}
+
+//Generate text animation from text position.
+genTextAnimation(pos vec) animation {
+    a = animation{
+        loop: true
+    }
+    a.animations = []animationFrames {
+        animationFrames {
+            from: pos
+            to: vec(pos.x, pos.y + 0.05)
+            t: 0.6
+        },
+        animationFrames {
+            from: vec(pos.x, pos.y + 0.05)
+            to: pos
+            t: 1.
+        }
+    }
+    return a
+}
+
+//Generates random translation for brick appearing
+genBricksAppearAnimation() animationFrames {
+    a = animationFrames {
+        from: vec(randFloat() * 0.4, randFloat() * 0.4)
+        to: vec(0.0, 0.0)
+        t: 1.
+    }
+    return a
+}
+
+//A single piece of the tail behind the ball.
+//The tail is just a collection of circles that despawn after 1s.
+struct tailPiece {
+    pos: vec
+    d: float = 1.5
+    currT: float
+
+    draw() bool {
+        if this.currT >= this.d {
+            return true
+        }
+        adv = timingFnEaseInOut(this.currT / this.d)
+        opacity = 1. - adv
+        drawCircle(this.pos, 0.04, rgb(opacity, opacity, opacity))
+        this.currT += win.delta
+        return false
+    }
+
+}
+
+//The tail
+tailCoords = []tailPiece*
+
+// Text that will appear at the ball position when it collides with a brick to indicate the combo.
+struct comboText {
+    i: int
+    pos: vec
+    currT: float
+    d: float = 1.5
+    color: rgb
+
+    draw() bool {
+        if this.currT >= this.d {
+            return true
+        }
+        adv = timingFnEaseInOut(this.currT / this.d)
+        opacity = 1. - adv
+        pos = vec(this.pos.x, this.pos.y + 0.1 * adv)
+        titleFont.write(pos, rgb(this.color.r * opacity, this.color.g * opacity, this.color.b * opacity), intToStr(this.i))
+        this.currT += win.delta
+        return false
+    }
+
+}
+
+//A collection of all combo text to draw.
+comboTexts = []comboText*
+
+//base element structure
+struct elem {
+    pos: vec
+    vel: vec
+    color: rgb
+
+    addVel(delta float) {
+        this.pos.x += this.vel.x * delta
+        this.pos.y += this.vel.y * delta
+    }
+
+    //will be overwritten
+    draw() {
+        panic("Undefined draw function")
+    }
+}
+
+
+//the bar
+struct bar extend elem {
+
+    //Also sets the velocity that it should give to the ball.
+    setNewPos(x float) {
+        ox = this.pos.x
+        disp = (x - ox) * 60.0
+        this.vel.x = disp
+        this.pos.x = x
+    }
+
+    draw() {
+        if this.pos.x != mousePos {
+            this.setNewPos(mousePos)
+        } else {
+            this.vel.x = 0.
+        }
+        drawBox(vec(this.pos.x, win.bb + 0.02), 0.3, 0.04, rgb(1.0,1.0,1.0))
+    }
+
+
+}
+bar = new bar
+
+//the ball
+struct ball extend elem {
+    
+    draw() {
+        if state != GAME_RUNNING {
+            return
+        }
+        this.addVel(win.delta)
+
+        //collide with bar
+        if this.pos.y <= win.bb + 0.02 + 0.04 {
+            if this.pos.x >= bar.pos.x - 0.20 && this.pos.x <= bar.pos.x + 0.20 {
+                combo = 0; lastCombo = 0
+                this.vel.x += bar.vel.x
+                this.vel.y = 0. - this.vel.y
+
+                //left and right corner special velocity
+                dist = this.pos.x - bar.pos.x
+                this.vel.x += dist
+
+                //cap horizontal velocity
+                if this.vel.x > 0.5 {
+                    this.vel.x = 0.5
+                }
+
+            } else {
+                //ball got passed the bar without colliding with it
+                state = GAME_FAILED
+                textAnimation = genTextAnimation(vec(0., 0. - win.tb / 4. - 0.08))
+                endTime = getTimeUnix() - startTime
+            }
+        }
+
+        //collide with border
+        if this.pos.x - 0.04 <= win.lb || this.pos.x + 0.04 >= win.rb {
+            this.vel.x = 0. - this.vel.x
+        }
+        //cannot collide with bottom border
+        if this.pos.y + 0.04 >= win.tb {
+            this.vel.y = 0. - this.vel.y
+        }
+
+        drawCircle(this.pos, 0.04, rgb(1.0,0.0,0.0))
+        tailCoords[len(tailCoords)] = new tailPiece{this.pos} //add a new tail piece at ball's position
+    }
+}
+ball = new ball {
+    pos: vec(0., 0. - win.tb / 2. - 0.08) //sets its starting position below the bricks
+}
+
+//the bricks
+struct brick extend elem {
+    width: float
+    height: float
+
+    draw() {
+        //adding position and currBrickAnimFrame to display the appearing animation
+        drawBox(this.pos + currBrickAnimFrame, this.width, this.height, this.color)
+    }
+
+}
+
+//all the bricks that have not been destroyed yet
+bricks = []brick*
+
+//a single particle of the particle system
+struct particle extend elem {
+    
+    draw() {
+        
+        //collision with the bar
+        if this.pos.y <= win.bb + 0.02 + 0.01 {
+            if this.pos.x >= bar.pos.x - 0.17 && this.pos.x <= bar.pos.x + 0.17 {
+                this.vel.x += bar.vel.x
+                this.vel.y = 0. - this.vel.y
+            }
+        }
+
+        //adds gravity to its velocity (0.98 per second)
+        this.vel.y -= gravity * win.delta
+        this.addVel(win.delta)
+
+        drawCircle(this.pos, 0.01, this.color)
+    }
+}
+
+//the particle system used at the ending screen
+struct particleSystem extend elem {
+    parts: []particle*
+
+    init(nb int) {
+        i=0; for i < nb, i++ {
+            velX = (randFloat() - 0.5) * 2.
+            this.parts[i] = new particle {
+                pos: this.pos
+                vel: vec(velX, randFloat())
+                color: rgb(randFloat(), randFloat(), randFloat())
+            }
+        }
+    }
+
+    draw() {
+        i=0; for i < len(this.parts), i++ {
+            p = this.parts[i]
+            p.draw()
+
+            //if it collides with any border, respawn it
+            if p.pos.x <= win.lb || p.pos.x >= win.rb || p.pos.y <= win.bb || p.pos.y >= win.tb {
+                p.pos = this.pos
+                velX = (randFloat() - 0.5) * 2.0
+                p.vel = vec(velX, randFloat())
+            }
+
+        }
+    }
+
+}
+partSys = particleSystem{}
+
+//draws text centered
+drawTextCentered(p vec, str cpstring, color rgb) {
+    size = vec(<float>f.calcWidth(str), 0.)
+    pixelsDimToCoords(&size)
+    f.write(vec(p.x - size.x / 2.0, p.y), color, str)
+}
+
+//draws any element
+drawElem(e <any>) {
+    e.draw()
+}
+
+//initiates a new game, called on each re-play
+initGame() {
+    //generate new brick animation
+    bricksAnim = genBricksAppearAnimation()
+
+    //resets game statistics
+    startTime = 0; endTime = 0
+    combo = 0
+    lastCombo = 0
+
+
+    //reset ball pos
+    ball.pos = vec(0., 0. - win.tb / 2. - 0.08)
+    ball.vel = vec(0.0, 0.0)
+
+    //spawn bricks
+    clear(bricks)
+    marginX = 0.05 * win.rb * 2.
+    width = win.rb * 2. - marginX * 2.
+    height = win.tb * 0.70 //only half of the screen
+    incrX = width / <float>nbBricksX
+    incrY = height / <float>nbBricksY 
+
+    offsetY = incrY / 2.0 + marginX
+    offsetX = incrX / 2.0 + marginX
+
+    y=0; for y < nbBricksY, y++ {
+        x=0; for x < nbBricksX, x++ {
+
+            //leave a hole in the middle
+            if x > nbBricksX / 3 && x < nbBricksX - nbBricksX / 3 {
+                if y > nbBricksY / 3 && y < nbBricksY - nbBricksY / 3 {
+                    continue
+                }
+            }
+
+            xp = <float>x * incrX + offsetX
+            yp = (0. - <float>y) * incrY - offsetY
+
+            bricks[len(bricks)] = new brick {
+                pos: vec(xp - win.rb, yp + win.tb)
+                width: incrX - 0.01
+                height: incrY - 0.01
+                color: rgb(randFloat(), randFloat(), randFloat())
+            }
+        }
+    }
+
+}
+
+//called on program start, load all ressources needed
+init() {
+    textAnimation = genTextAnimation(vec(0., 0. + win.tb / 4. - 0.08))
+
+    f.load("assets/font/DroidSansMono.ttf")
+    f.setSize(16)
+
+    titleFont = font{}
+    titleFont.load("./assets/font/Fast Hand.ttf")
+    titleFont.setSize(25)
+
+    bricksMarkup = []textMarkup{
+        textMarkup{
+            pos: 0
+            color: rgb(1.00,0.00,0.00)
+        },
+        textMarkup{
+            pos: 1
+            color: rgb(1.00,1.00,0.00)
+        },
+        textMarkup{
+            pos: 2
+            color: rgb(0.00,1.00,0.33)
+        },
+        textMarkup{
+            pos: 3
+            color: rgb(0.00,0.80,1.00)
+        },
+        textMarkup{
+            pos: 4
+            color: rgb(0.88,0.30,1.00)
+        },
+        textMarkup{
+            pos: 5
+            color: rgb(1.0,1.0,1.0)
+        }
+    }
+
+    collisionSound.load("assets/Woosh-Mark_DiAngelo-4778593.wav")
+}
+
+//Called on each frame
+display() {
+
+    //To not bounce the ball twice if it collides with two bricks at the same time.
+    isVelYInverted = false
+    isVelXInverted = false
+
+    //propagates current brick animation without generating extra frames.
+    currBrickAnimFrame = bricksAnim.get(win.delta)
+
+    //collide with the ball and draw each brick
+    i=0; for i < len(bricks), i++ {
+        brick = bricks[i]
+
+        hh = brick.height / 2.
+        hw = brick.width / 2.
+        //collides vertically
+        if ball.pos.y <= brick.pos.y + hh + 0.04 && ball.pos.y >= brick.pos.y - hh - 0.04 {
+            //collides horizontally
+            if ball.pos.x >= brick.pos.x - hw - 0.04 && ball.pos.x <= brick.pos.x + hw + 0.04 {
+                
+                //calculate distance horizontally and vertically travelled by the ball inside the brick to know
+                //which side it came from
+                distX = 0.
+                distY = 0.
+                //calculate disztance horizontally
+                if ball.pos.x < brick.pos.x {
+                    distX = (brick.pos.x - ball.pos.x) / brick.width
+                } else {
+                    distX = (ball.pos.x - brick.pos.x) / brick.width
+                }
+
+                //calculate distance vertically
+                if ball.pos.y < brick.pos.y {
+                    distY = (brick.pos.y - ball.pos.y) / brick.height
+                } else {
+                    distY = (ball.pos.y - brick.pos.y) / brick.height
+                }
+
+                //is the ball travelled mostly on the X axis, then it mosly came from the left-right sides
+                if distX > distY && isVelXInverted == false {
+                    isVelXInverted = true
+                    ball.vel.x = 0. - ball.vel.x
+                }
+
+                //is the ball travelled mostly on the Y axis, then it mosly came from the top-bottom sides
+                if distX < distY && isVelYInverted == false{
+                    isVelYInverted = true
+                    ball.vel.y = 0. - ball.vel.y
+                }
+
+                //increment combo and update score
+                combo++
+                score += combo
+
+                //play collision sound
+                collisionSound.play()
+
+                //register the combo text
+                if combo > 0 && lastCombo != combo {
+                    lastCombo = combo
+                    comboTexts[len(comboTexts)] = new comboText {
+                        i: combo
+                        pos: ball.pos
+                        color: rgb(1.0, 0.0, 0.0)
+                    }
+                }
+
+                //delete the collided brick
+                delete(bricks, i)
+                if len(bricks) == 0 {
+                    state = GAME_WON
+                    textAnimation = genTextAnimation(vec(0., 0. + win.tb / 4. - 0.08))
+                    endTime = getTimeUnix() - startTime
+                    posVec = vec(0.0, 10.0)
+                    pixelsDimToCoords(&posVec)
+                    partSys.pos = vec(0., 0. + win.tb / 2. - 0.08 + posVec.y)
+                    partSys.init(1000)
+                    break
+                }
+                //continue the loop on the same index because we deleted current index
+                //so each following bricks that were after the deleted brick are now at index below
+                i--
+                continue //we do not need to draw the brick
+
+            }
+        }
+
+        //draw the brick
+        drawElem(brick)
+
+    }
+
+    //draw the tail and remove tail peices that have been alive for 1 or more second
+    i=0; for i < len(tailCoords), i++ {
+        t = tailCoords[i]
+        if t.draw() == true {
+            delete(tailCoords, i)
+            i--
+        }
+    }
+
+    //draw combo texts and remove the one that have been alive for 1 and a half or more second
+    i=0; for i < len(comboTexts), i++ {
+        cbt = comboTexts[i]
+        if cbt.draw() == true {
+            delete(comboTexts, i)
+            i--
+            continue
+        }
+    }
+
+    drawElem(ball) //draw the ball
+    drawElem(bar) //draw the bar
+
+    //handle text drawing
+    if state != GAME_RUNNING {
+        //draw the welcome screen
+        if state == GAME_NOT_STARTED {
+            tWidth = vec(<float>titleFont.calcWidth("Bricks"), 0.)
+            pixelsDimToCoords(&tWidth)
+
+            pos = textAnimation.get(win.delta)
+            pos.x = 0.0 - tWidth.x / 2.
+
+            titleFont.writeMarkup(pos, bricksMarkup, 0, "Bricks")
+
+            drawTextCentered(vec(0., 0. - win.tb / 4. - 0.08), "Click to start a new game.", rgb(1.0,1.0,1.0))
+        } else if state == GAME_FAILED {
+            //draw the game over overlay
+            drawTextCentered(textAnimation.get(win.delta), "Game over!\nScore: "+intToStr(score)+" ("+intToStr(endTime / 1000000000)+"s)\nClick to start a new game.", rgb(1.0,1.0,1.0))
+        } else if state == GAME_WON {
+            //draw the winning screen (particles)
+            pos = textAnimation.get(win.delta)
+            partSys.pos = pos
+            partSys.draw()
+            drawTextCentered(pos, "You won!\nScore: "+intToStr(score)+" ("+intToStr(endTime / 1000000000)+"s)\nClick to start a new game.", rgb(1.0,1.0,1.0))            
+        }
+    } else {
+        //draw the fps and score in the top left corner
+        sizeVec = vec(0.0, 20.0)
+        pixelsDimToCoords(&sizeVec)
+        f.write(vec(win.lb, win.tb - sizeVec.y), rgb(0.8,0.8,0.8), intToStr(win.fps()) + " fps\nScore: " + intToStr(score))
+    }
+
+}
+
+//handle mouse mouvement
+mouse(x int, y int) {
+    v = vec(<float>x, <float>y)
+    pixelsToCoords(&v)
+    mousePos = v.x
+}
+
+//handle click
+click(btn int, pressed bool, x int, y int) {
+    if state == GAME_RUNNING {
+        return
+    }
+    
+    if pressed == false {
+        initGame()
+        ball.vel.y = -0.6
+        score = 0
+        startTime = getTimeUnix()
+        state = GAME_RUNNING
+    }
+}
+
+main(args []cpstring) int {
+    //makes a window and launch it
+    win = window(800, 600, "Test")
+    win.display = display
+    win.init = init
+    win.move = mouse
+    win.click = click
+    win.launch()
+    return 0
+}

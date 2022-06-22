@@ -1,0 +1,39 @@
+#import "exec.bah"
+
+#define! system(s cpstring) int
+
+//A wrapper for playing sounds.
+//Warning, this is in early developpement and really slow.
+struct sound {
+    path: cpstring
+    channel: chan:bool
+
+    //Internal function, do not call.
+    worker() {
+        for 1==1 {
+            finished = <- this.channel
+            if finished == true {
+                break
+            }
+            #windows {
+                playSound(this.path, null, noCheck(SND_FILENAME))
+            }
+            #linux {
+                async system("canberra-gtk-play -f "+this.path)
+            }
+        }
+    }
+
+    //Loads a sound by path.
+    load(path cpstring) {
+        this.path = path
+        this.channel = chan bool
+        async this.worker()
+    }
+
+    //Plays the sound.
+    play() {
+        false -> this.channel
+    }
+
+}
