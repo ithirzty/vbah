@@ -143,22 +143,38 @@ struct elem {
 
 //the bar
 struct bar extend elem {
+    currT: float
+    velD: float = 0.2
 
     //Also sets the velocity that it should give to the ball.
     setNewPos(x float) {
         ox = this.pos.x
-        disp = (x - ox) * 60.0
+        disp = (x - ox) * 60.
         this.vel.x = disp
         this.pos.x = x
+        this.currT = 0.
     }
 
     draw() {
         if this.pos.x != mousePos {
             this.setNewPos(mousePos)
         } else {
-            this.vel.x = 0.
+            if this.currT >= this.velD {
+                this.vel.x = 0.
+            } else {
+                this.currT += win.delta
+            }
         }
-        drawBox(vec(this.pos.x, win.bb + 0.02), 0.3, 0.04, rgb(1.0,1.0,1.0))
+
+        velX float
+        if this.vel.x > 0. {
+            velX = this.vel.x
+        } else {
+            velX = 0. - this.vel.x
+        }
+        invVelRed = 1. - velX / 5.
+
+        drawBox(vec(this.pos.x, win.bb + 0.02), 0.3, 0.04, rgb(1.0,1.0 * invVelRed,1.0 * invVelRed))
     }
 
 
@@ -173,12 +189,17 @@ struct ball extend elem {
             return
         }
         this.addVel(win.delta)
+        
+        if this.vel.x > 0.7 || this.vel.x < -0.7 {
+            this.vel.x -= this.vel.x * (0.5 * win.delta)
+        }
 
         //collide with bar
         if this.pos.y <= win.bb + 0.02 + 0.04 {
             if this.pos.x >= bar.pos.x - 0.20 && this.pos.x <= bar.pos.x + 0.20 {
                 combo = 0; lastCombo = 0
-                this.vel.x += bar.vel.x
+                barVel = bar.vel.x * (1. - bar.currT / bar.velD)
+                this.vel.x += barVel
                 this.vel.y = 0. - this.vel.y
 
                 //left and right corner special velocity
@@ -186,9 +207,6 @@ struct ball extend elem {
                 this.vel.x += dist
 
                 //cap horizontal velocity
-                if this.vel.x > 0.5 {
-                    this.vel.x = 0.5
-                }
 
             } else {
                 //ball got passed the bar without colliding with it
@@ -200,10 +218,20 @@ struct ball extend elem {
 
         //collide with border
         if this.pos.x - 0.04 <= win.lb || this.pos.x + 0.04 >= win.rb {
+            if this.pos.x < 0. {
+                this.pos.x = win.lb + 0.04
+            } else {
+                this.pos.x = win.rb - 0.04
+            }
             this.vel.x = 0. - this.vel.x
         }
         //cannot collide with bottom border
         if this.pos.y + 0.04 >= win.tb {
+            if this.pos.y < 0. {
+                this.pos.y = win.bb + 0.04
+            } else {
+                this.pos.y = win.tb - 0.04
+            }
             this.vel.y = 0. - this.vel.y
         }
 
