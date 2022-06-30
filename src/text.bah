@@ -171,6 +171,18 @@ struct font {
             //drawing the texture
             ax int = noCheck(slot->advance.x)
             ay int = noCheck(slot->advance.y)
+
+            // this is a bad way of dealing with text starting outside of the viewport
+            // isValidPos = false
+            // glGetBooleanv(noCheck(GL_CURRENT_RASTER_POSITION_VALID), &isValidPos)
+            // if isValidPos == false {
+            //     tWidth = vec(<float>(ax >> 6), 0.)
+            //     pixelsDimToCoords(&tWidth)
+            //     pos += tWidth
+            //     glRasterPos2f(pos.x, pos.y)
+            //     continue
+            // }
+
             originY int = 0 - (<int>noCheck(slot->bitmap_top) - <int>noCheck(slot->bitmap.rows)) / 2
             glBitmap(w, h, 0 - noCheck(slot->bitmap_left),
                 originY,

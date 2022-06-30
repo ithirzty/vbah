@@ -75,6 +75,7 @@
 #define! gluUnProject(wx float, wy float, wz float, m ptr, p ptr, v ptr, x float*, y float*, z float*)
 #define! glGetDoublev(w ptr, t float*)
 #define! glGetIntegerv(w ptr, t int*)
+#define! glGetBooleanv(w ptr, b bool*)
 #define! glPushMatrix()
 #define! glPopMatrix()
 #define! glTranslated(x float, y float, z float)
@@ -91,3 +92,6 @@
 #define! glutBitmapWidth(font ptr, c char) int
 #define! glutSpecialFunc(fn ptr)
 #define! glutGetModifiers() int
+#define! glScissor(x int, y int, w int, h int)
+#define! glScissorIndexed(i int, x int, y int, w int, h int)
+#define! glIsEnabled(w ptr) bool

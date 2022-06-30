@@ -1,0 +1,25 @@
+//A wrapper for defining a clip plane.
+//Only pixels inside the clip plane can be modified.
+struct clipPlane {
+    coords: vec
+    wasEnabled: bool
+
+    //Sets the clip plane.
+    //the coords argument is a tuple [left, bottom, right, top] in pixels coordinates.
+    clip(coords tuple:4:int) {
+        this.wasEnabled = glIsEnabled(noCheck(GL_SCISSOR_TEST))
+        if this.wasEnabled == false {
+            glEnable(noCheck(GL_SCISSOR_TEST))
+        }
+        glBegin(noCheck(GL_SCISSOR_TEST))
+        glScissor(coords[0], coords[1], coords[2], coords[3])
+    }
+
+    //This disables the clip plane.
+    end() {
+        if this.wasEnabled == false {
+            glDisable(noCheck(GL_SCISSOR_TEST))
+        }
+    }
+
+}
