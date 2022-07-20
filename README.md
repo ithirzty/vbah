@@ -116,7 +116,13 @@ Its methods are:
 - **setSize(s int)** sets the text size,
 - **write(pos vec, color rgb, str cpstring)** writes text at the specified coordinates with the specified color,
 - **writeMarkup(pos vec, colors []textMarkup, offset int, str cpstring)** same as `.write()` but with a textMarkup array instead of rgb color,
-- **calcWidth(s cpstring) int** calculates the width of a string as pixels value.
+- **calcWidth(s cpstring) int** calculates the width of a string as pixels value,
+- **getHeight() uint** returns the maximum height of a char.
+
+Its fields are:
+- **lineSpacing** the vertical margin between each line,
+- **antialiased** weither the font should be anti-aliased.
+
 
 ### The sound structure
 The sound structures allows you to play sound.

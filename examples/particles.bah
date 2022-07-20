@@ -269,7 +269,7 @@ kb(key char, mod int) {
 }
 
 init() {
-    textFont = font{}
+    textFont = font{antialiased: true}
     textFont.load("./assets/font/DroidSansMono.ttf")
     textFont.setSize(16)
 }

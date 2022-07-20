@@ -1,44 +1,7 @@
-#include "<ft2build.h>"
-#include "<freetype/freetype.h>"
-
-#linux {
-    #cLib "w $(pkg-config --libs freetype2) $(pkg-config --cflags freetype2)"
-}
-#windows {
-    #cLib "lfreetype"
-}
-
-#define! FT_Library ptr
-#define! FT_Face ptr
-#define! FT_Init_FreeType(l FT_Library*) int
-#define! FT_New_Face(l FT_Library, p cpstring, i int, f FT_Face*) int
-#define! FT_Done_Face(f FT_Face*)
-#define! FT_Set_Char_Size(f FT_Face, w int, h int, resH int, resV int) int
-#define! FT_Set_Pixel_Sizes(f FT_Face, w int, h int)
-#define! FT_GlyphSlot ptr
-#define! FT_Get_Char_Index(f FT_Face, c uint) uint
-#define! FT_Load_Char(f FT_Face, c uint, f int) int
-
-#define! GLubyte char
-#define! glGenLists(s int) GLuint
-#define! glNewList(list GLuint, mode GLenum)
-#define! glBitmap(w int, h int, xo int, yo int, xmove int, ymove int, bmp GLubyte*)
-#define! glEndList()
-#define! FT_Select_Charmap(f FT_Face, e int) int
-
-#define! glWindowPos3dv(pos float*)
-
 #define pixelsDimToCoords(v vec*)
+#define drawBox(v vec, w float, h float, color rgb)
 
-struct! FT_Bitmap_ {
-    rows: uint32
-    width: uint32
-    pitch: int32
-    num_grays: ushort
-    pixel_mode: char
-    palette_mode: char
-    palette: ptr
-}
+const antiAliasedScaleFactor = 0.72
 
 //Maps a position (index) in the string to write and a color to set at its position.
 struct textMarkup {
@@ -68,12 +31,40 @@ struct charToBmp {
     b: []char
 }
 
+//This is an internal struct to map a char to its antialiased texture.
+//This is used to not re-make the texture on each write call.
+struct charToTex {
+    c: char
+    t: GLuint
+    color: rgb
+}
+
 //A wrapper used for writting text with a specified font.
 struct font {
+    //this is internal, do not change
     lib: FT_Library*
+    //this is internal, do not change
     face: FT_Face*
+    //this is internal, do not change
     bitmaps: []charToBmp*
+    //this is internal, do not change
+    textures: []charToTex*
+    //this is internal, do not change
+    currPos: vec
+    //this is internal, do not change
     charSize: int = -1
+    
+    //The line spacing is the vertical margin between two lines.
+    lineSpacing: int = 0
+
+    //Weither the font should be antialiased.
+    //Disabling antialiasing may change text behavior.
+    antialiased: bool = true
+
+    //Returns the maximum character height (set by .setSize())
+    getHeight() uint {
+        return this.charSize
+    }
 
     //Loads the font at the specified path.
     load(path cpstring) {
@@ -105,34 +96,15 @@ struct font {
         this.charSize = s
     }
 
-    //Write some text at the specified position with the specified color.
-    //You will need to call .setSize() at least once before calling this function.
-    write(pos vec, color rgb, str cpstring) {
-        setDrawingColor(color)
-        if this.charSize == -1 {
-            panic("error writting text to frame, font size is not set. Use .setSize().")
-        }
-
+    //Internal method to write a single char to the screen.
+    writeChar(c char) {
         face = this.face
         faceDP = *face
-        glyph_index = 0
         slot FT_GlyphSlot = noCheck(faceDP->glyph)
-        l = strlen(str)
-        n = 0
-        glRasterPos2f(pos.x, pos.y)
-        n=0; for n < l, n++ {
-            c uint = str[n]
-            if c == 10 {
-                lh = vec(0.0, <float>this.charSize)
-                pixelsDimToCoords(&lh)
-                pos.y -= lh.y
-                glRasterPos2f(pos.x, pos.y)
-                continue
-            }
-            err = FT_Load_Char(*face, <uint32>c, noCheck(FT_LOAD_RENDER | FT_LOAD_TARGET_MONO))
+        err = FT_Load_Char(*face, <uint32>c, noCheck(FT_LOAD_RENDER | FT_LOAD_TARGET_MONO))
             if err != 0 {
-                println("Error loading font glyph for char '"+charToString(str[n])+"'.")
-                continue
+                println("Error loading font glyph for char '"+charToString(c)+"'.")
+                return
             }
             bitmap = new FT_Bitmap_
             *bitmap = noCheck(slot->bitmap)
@@ -144,7 +116,7 @@ struct font {
             //if texture found use it
             i=0; for i < len(this.bitmaps), i++ {
                 ctt = this.bitmaps[i]
-                if ctt.c == str[n] {
+                if ctt.c == c {
                     bmp = cArr(ctt.b)
                     break
                 }
@@ -163,7 +135,7 @@ struct font {
                 }
                 bmp = cArr(data)
                 this.bitmaps[len(this.bitmaps)] = new charToBmp {
-                    c: str[n]
+                    c: c
                     b: data
                 }
             }
@@ -172,21 +144,148 @@ struct font {
             ax int = noCheck(slot->advance.x)
             ay int = noCheck(slot->advance.y)
 
-            // this is a bad way of dealing with text starting outside of the viewport
-            // isValidPos = false
-            // glGetBooleanv(noCheck(GL_CURRENT_RASTER_POSITION_VALID), &isValidPos)
-            // if isValidPos == false {
-            //     tWidth = vec(<float>(ax >> 6), 0.)
-            //     pixelsDimToCoords(&tWidth)
-            //     pos += tWidth
-            //     glRasterPos2f(pos.x, pos.y)
-            //     continue
-            // }
-
             originY int = 0 - (<int>noCheck(slot->bitmap_top) - <int>noCheck(slot->bitmap.rows)) / 2
             glBitmap(w, h, 0 - noCheck(slot->bitmap_left),
                 originY,
                 (ax>>6), (ay>>6), <ptr>bmp)
+    }
+
+
+    //Internal method to write a single anti-aliased char to the screen.
+    writeCharAA(c char, color rgb, isFirst bool) {
+        face = this.face
+        faceDP = *face
+        slot FT_GlyphSlot = noCheck(faceDP->glyph)
+        err = FT_Load_Char(*face, <uint32>c, noCheck(FT_LOAD_RENDER))
+            if err != 0 {
+                println("Error loading font glyph for char '"+charToString(c)+"'.")
+                return
+            }
+            bitmap = new FT_Bitmap_
+            *bitmap = noCheck(slot->bitmap)
+            raw cpstring = noCheck(bitmap->buffer)
+            w = bitmap.width
+            h = bitmap.rows
+
+            texture GLuint
+            rightRGB = false
+            ctt = new charToTex
+
+            //if texture found use it
+            i=0; for i < len(this.textures), i++ {
+                ctt = this.textures[i]
+                if ctt.c == c {
+                    if ctt.color.r == color.r && ctt.color.g == color.g && ctt.color.b == color.b {
+                        rightRGB = true
+                    } 
+                    texture = ctt.t
+                    break
+                }
+            }
+
+            // if bitmap not found make it
+            if i == len(this.textures) {
+                this.textures[len(this.textures)] = new charToTex {
+                    c: c
+                    t: texture
+                }
+                ctt = this.textures[len(this.textures)-1]
+            }
+
+            if rightRGB == false {
+                ctt.color = color
+                bmp = []char
+                allocateArray(bmp, bitmap.rows * bitmap.width * 4)
+                y=0; for y < h, y++ {
+                    x=0; for x < w, x++ {
+                        ind = y * (w * 4) + x * 4
+                        iy = h - y - 1
+                        a byte = raw[iy * bitmap.pitch + x]
+                        
+                        bmp[ind]   = <char>(<float>color.r * 255.0)
+                        bmp[ind+1] = <char>(<float>color.g * 255.0)
+                        bmp[ind+2] = <char>(<float>color.b * 255.0)
+                        bmp[ind+3] = <char>a
+                    }
+                }
+                glGenTextures(1, &texture)
+                glBindTexture(noCheck(GL_TEXTURE_2D), texture)
+                glTexEnvf(noCheck(GL_TEXTURE_ENV), noCheck(GL_TEXTURE_ENV_MODE), noCheck(GL_MODULATE))
+                glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MIN_FILTER), noCheck(GL_LINEAR))
+                glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MAG_FILTER), noCheck(GL_LINEAR))
+                glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_WRAP_S), noCheck(GL_MIRROR_CLAMP_TO_EDGE))
+                glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_WRAP_T), noCheck(GL_MIRROR_CLAMP_TO_EDGE))
+                gluBuild2DMipmaps(noCheck(GL_TEXTURE_2D), 4, w, h, noCheck(GL_RGBA), noCheck(GL_UNSIGNED_BYTE), cArr(bmp))
+                ctt.t = texture
+            }
+
+            tex = rgb {
+                isTex: true
+                tex: texture
+                texW: w
+                texH: h
+            }
+
+            if h != 0 && w != 0 {
+                s = vec(<float>w * antiAliasedScaleFactor, <float>h * antiAliasedScaleFactor)
+                pixelsDimToCoords(&s)
+
+                if isFirst == true {
+                    offset = vec(<float>(w / 2) * antiAliasedScaleFactor, 0.0)
+                    pixelsDimToCoords(&offset)
+                    this.currPos += offset
+                }
+
+                pos = this.currPos
+
+                offsetY = <int>noCheck(slot->bitmap_top) - <int>noCheck(slot->bitmap.rows) / 2
+                offsetX = <int>noCheck(slot->bitmap_left)
+
+                offset = vec(<float>offsetX * antiAliasedScaleFactor, <float>offsetY * antiAliasedScaleFactor)
+
+                pixelsDimToCoords(&offset)
+                pos += offset
+
+                drawBox(pos, s.x, s.y, tex)
+            }
+
+            ax int = noCheck(slot->advance.x)
+            ay int = noCheck(slot->advance.y)
+
+            adv = vec(<float>(ax >> 6) * antiAliasedScaleFactor, <float>(ay >> 6) * antiAliasedScaleFactor)
+            pixelsDimToCoords(&adv)
+            this.currPos += adv
+    }
+
+    //Write some text at the specified position with the specified color.
+    //You will need to call .setSize() at least once before calling this function.
+    write(pos vec, color rgb, str cpstring) {
+        setDrawingColor(color)
+        if this.charSize == -1 {
+            panic("error writting text to frame, font size is not set. Use .setSize().")
+        }
+        l = strlen(str)
+        n = 0
+        glRasterPos2f(pos.x, pos.y)
+        this.currPos = pos
+        isFirst = true
+        n=0; for n < l, n++ {
+            c uint = str[n]
+            if c == 10 {
+                isFirst = true
+                lh = vec(0.0, <float>this.charSize + <float>this.lineSpacing)
+                pixelsDimToCoords(&lh)
+                pos.y -= lh.y
+                this.currPos = pos
+                glRasterPos2f(pos.x, pos.y)
+                continue
+            }
+            if this.antialiased == true {
+                this.writeCharAA(str[n], color, isFirst)
+            } else {
+                this.writeChar(str[n])
+            }
+            isFirst = false
         }
 
     }
@@ -199,86 +298,49 @@ struct font {
             panic("error writting text to frame, font size is not set. Use .setSize().")
         }
 
-        face = this.face
-        faceDP = *face
-        glyph_index = 0
-        slot FT_GlyphSlot = noCheck(faceDP->glyph)
         l = strlen(str)
         n = 0
+        currColor = rgb(0.0,0.0,0.0)
+        this.currPos = pos
         if offset != 0 {
             j=len(colors)-1; for j >= 0, j-- {
                 if colors[j].pos <= offset {
+                    currColor = colors[j].color
                     setDrawingColor(colors[j].color)
                     break
                 }
             }
         }
         glRasterPos2f(pos.x, pos.y)
+        isFirst = true
         n=offset; for n < l, n++ {
             c uint = str[n]
             j=0; for j < len(colors), j++ {
                 if colors[j].pos == n {
+                    currColor = colors[j].color
                     setDrawingColor(colors[j].color)
-                    currPos float* = memoryAlloc(sizeof(float) * 4)
-                    glGetDoublev(noCheck(GL_CURRENT_RASTER_POSITION), currPos)
-                    glWindowPos3dv(currPos)
+                    currPos = [0.0,0.0,0.0,0.0]
+                    glGetDoublev(noCheck(GL_CURRENT_RASTER_POSITION), <float*>currPos)
+                    glWindowPos3dv(<float*>currPos)
                     break
                 }
             }
             if c == 10 {
-                lh = vec(0.0, <float>this.charSize)
+                isFirst = true
+                lh = vec(0.0, <float>this.charSize + <float>this.lineSpacing)
                 pixelsDimToCoords(&lh)
                 pos.y -= lh.y
+                this.currPos = pos
                 glRasterPos2f(pos.x, pos.y)
                 continue
             }
 
-            err = FT_Load_Char(*face, <uint32>c, noCheck(FT_LOAD_RENDER | FT_LOAD_TARGET_MONO))
-            if err != 0 {
-                println("Error loading font glyph for char '"+charToString(str[n])+"'.")
-                continue
+            if this.antialiased == true {
+                this.writeCharAA(str[n], currColor, n == 0)
+            } else {
+                this.writeChar(str[n])
             }
-            bitmap = new FT_Bitmap_
-            *bitmap = noCheck(slot->bitmap)
-            raw cpstring = noCheck(bitmap->buffer)
-            w = bitmap.width
-            h = bitmap.rows
-            
-            bmp cpstring
-            //if texture found use it
-            i=0; for i < len(this.bitmaps), i++ {
-                ctt = this.bitmaps[i]
-                if ctt.c == str[n] {
-                    bmp = cArr(ctt.b)
-                    break
-                }
-            }
-
-            // if bitmap not found make it
-            if i == len(this.bitmaps) {
-                data = []char
-                allocateArray(data, bitmap.pitch*h)
-                cR = bitmap.pitch * h
-                row=0; for row < h, row++ {
-                    col=0; for col < bitmap.pitch, col++ {
-                        data[cR + col] = raw[col + (row * bitmap.pitch)]
-                    }
-                    cR -= bitmap.pitch
-                }
-                bmp = cArr(data)
-                this.bitmaps[len(this.bitmaps)] = new charToBmp {
-                    c: str[n]
-                    b: data
-                }
-            }
-            
-            //drawing the texture
-            ax int = noCheck(slot->advance.x)
-            ay int = noCheck(slot->advance.y)
-            originY int = 0 - (<int>noCheck(slot->bitmap_top) - <int>noCheck(slot->bitmap.rows)) / 2
-            glBitmap(w, h, 0 - noCheck(slot->bitmap_left),
-                originY,
-                (ax>>6), (ay>>6), <ptr>bmp)
+            isFirst = false
         }
 
     }
@@ -298,23 +360,40 @@ struct font {
         str = strAsArr(s)
         width = 0
         max = 0
+        isFirst = true
         n=0; for n < len(str), n++ {
             if str[n] == <char>10 {
+                isFirst = true
                 if width > max {
                     max = width
                 }
                 width = 0
             }
             cInd = FT_Get_Char_Index(*face, <uint>str[n])
-            err = FT_Load_Char(*face, cInd, noCheck(FT_LOAD_RENDER | FT_LOAD_MONOCHROME))
+            err = 0
+            if this.antialiased == false {
+                err = FT_Load_Char(*face, cInd, noCheck(FT_LOAD_RENDER | FT_LOAD_MONOCHROME))
+            } else {
+                err = FT_Load_Char(*face, cInd, noCheck(FT_LOAD_RENDER))
+            }
             if err != 0 {
                 println("Error loading font glyph for char '"+charToString(str[n])+"'.")
                 continue
             }
+
             bitmap = new FT_Bitmap_
             *bitmap = noCheck(slot->bitmap)
+
+            if isFirst == true {
+                width += <int>(<float>bitmap.width * antiAliasedScaleFactor)
+            }
+
             ax int = noCheck(slot->advance.x) >> 6
+            if this.antialiased == true {
+                ax = <int>(<float>ax * antiAliasedScaleFactor)
+            }
             width += ax
+            isFirst = false
         }
         if width > max {
             max = width

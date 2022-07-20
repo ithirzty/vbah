@@ -1,8 +1,14 @@
+//OpenGL
 #include "<GL/gl.h>"
+//Glut
 #include "<GL/glut.h>"
+//FreeType
+#include "<ft2build.h>"
+#include "<freetype/freetype.h>"
+
 
 #linux {
-    #cLib "lGL" "lglut" "lGLU"
+    #cLib "lGL" "lglut" "lGLU" "w $(pkg-config --libs freetype2) $(pkg-config --cflags freetype2)"
 
     #static {
         #warning "You may need to compile the program as a dynamic executable (-d)."
@@ -16,7 +22,7 @@
     }
 
     #dynamic {
-        #cLib "lfreeglut"
+        #cLib "lfreeglut" "lfreetype"
     }
 
     #cLib "lopengl32"  "lGLU32" "Wl,--subsystem,windows"
@@ -25,22 +31,15 @@
 
 }
 
-#define! GLuint uint
-#define! GLenum ptr
 
 
+//Maths
 #define! cos(f float) float
 #define! sin(f float) float
 #define! sqrt(f float) float
 
-#define! glClearColor(r float, g float, b float, a float)
-#define! glClear(b ptr)
-#define! glBegin(c ptr)
-#define! glColor3f(r float, g float, b float)
-#define! glVertex2f( x float, y float )
-#define! glEnd()
+//Glut
 #define! glutSwapBuffers()
-
 #define! glutInit(argc int*, char**)
 #define! glutInitDisplayMode(dm ptr)
 #define! glutInitWindowSize(w int,h int)
@@ -50,6 +49,18 @@
 #define! glutIdleFunc(f function())
 #define! glutPostRedisplay()
 #define! glutMainLoop()
+
+//OpenGL
+#define! GLuint uint
+#define! GLenum ptr
+#define! GLubyte char
+
+#define! glClearColor(r float, g float, b float, a float)
+#define! glClear(b ptr)
+#define! glBegin(c ptr)
+#define! glColor3f(r float, g float, b float)
+#define! glVertex2f( x float, y float )
+#define! glEnd()
 #define! glColor3f(r float, g float, b float) 
 #define! glRasterPos2f(x float, y float)
 #define! glutBitmapString(font ptr, str cpstring)
@@ -95,3 +106,34 @@
 #define! glScissor(x int, y int, w int, h int)
 #define! glScissorIndexed(i int, x int, y int, w int, h int)
 #define! glIsEnabled(w ptr) bool
+#define! glBlendFunc(scr uint, fn ptr)
+#define! glWindowPos3dv(pos float*)
+#define! glGenLists(s int) GLuint
+#define! glNewList(list GLuint, mode GLenum)
+#define! glBitmap(w int, h int, xo int, yo int, xmove int, ymove int, bmp GLubyte*)
+#define! glEndList()
+
+
+//FreeType
+#define! FT_Library ptr
+#define! FT_Face ptr
+#define! FT_GlyphSlot ptr
+
+#define! FT_Init_FreeType(l FT_Library*) int
+#define! FT_New_Face(l FT_Library, p cpstring, i int, f FT_Face*) int
+#define! FT_Done_Face(f FT_Face*)
+#define! FT_Set_Char_Size(f FT_Face, w int, h int, resH int, resV int) int
+#define! FT_Set_Pixel_Sizes(f FT_Face, w int, h int)
+#define! FT_Get_Char_Index(f FT_Face, c uint) uint
+#define! FT_Load_Char(f FT_Face, c uint, f int) int
+#define! FT_Select_Charmap(f FT_Face, e int) int
+
+struct! FT_Bitmap_ {
+    rows: uint32
+    width: uint32
+    pitch: int32
+    num_grays: ushort
+    pixel_mode: char
+    palette_mode: char
+    palette: ptr
+}

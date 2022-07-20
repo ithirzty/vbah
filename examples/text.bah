@@ -16,18 +16,22 @@ helloFont font
 vbahFont font
 m = []textMarkup
 
+const TEXT1 = "VBAH"
+const TEXT2 = "Hello World!"
+const TEXT3 = "This text is antialiased."
 
 display() {
-    textSize = vec(<float>helloFont.calcWidth("Hello world!"), 0.0)
+    textSize = vec(<float>vbahFont.calcWidth(TEXT1), 40.0)
     pixelsDimToCoords(&textSize)
-    
-    helloFont.write(vec(0.0 - textSize.x/2.0 ,0.0), rgb(1.0,1.0,1.0), "Hello world!")
+    vbahFont.writeMarkup(vec(0.0 - textSize.x/2.0, textSize.y), m, 0, TEXT1)
 
-    textSize = vec(<float>vbahFont.calcWidth("VBAH"), 40.0)
-    pixelsDimToCoords(&textSize)
+    textSize = vec(<float>helloFont.calcWidth(TEXT2), 0.0)
+    pixelsDimToCoords(&textSize)    
+    helloFont.write(vec(0.0 - textSize.x/2.0 ,0.0), rgb(1.0,1.0,1.0), TEXT2)
 
-    vbahFont.writeMarkup(vec(0.0 - textSize.x/2.0, textSize.y), m, 0, "VBAH")
-
+    textSize = vec(<float>helloFont.calcWidth(TEXT3), <float>helloFont.getHeight() + 10.0)
+    pixelsDimToCoords(&textSize)    
+    helloFont.write(vec(0.0 - textSize.x/2.0 , 0.0 - textSize.y), rgb(0.8,0.8,0.8), TEXT3)
 }
 
 init() {
@@ -37,7 +41,7 @@ init() {
 
     vbahFont = font{}
     vbahFont.load("./assets/font/Fast Hand.ttf")
-    vbahFont.setSize(20)
+    vbahFont.setSize(50)
 
     m = []textMarkup{
         textMarkup{
@@ -63,6 +67,7 @@ main(args []cpstring) int {
     //launching the window
     
     win = window(600, 600, "Text")
+    win.autoLoop = false
     win.display = display
     win.init = init
     win.launch()

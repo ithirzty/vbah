@@ -102,6 +102,8 @@ struct window {
             init()
         }
         this.lastTimeDelta = <float>getTimeUnix()
+        glEnable(noCheck(GL_BLEND))
+        glBlendFunc(noCheck(GL_SRC_ALPHA), noCheck(GL_ONE_MINUS_SRC_ALPHA))
         glutMainLoop()
     }
 
@@ -171,10 +173,10 @@ __VBAH_display() {
 }
 
 __VBAH_idle() {
-    idl function() = WINDOW_PTR.display
-    if idl != null {
-        idl()
-    }
+    // idl function() = WINDOW_PTR.display
+    // if idl != null {
+    //     idl()
+    // }
     if WINDOW_PTR.autoLoop == true {
         redrawFrame()
     }
@@ -256,7 +258,7 @@ window(w int, h int, t cpstring) window* {
 
     argc = 0
     glutInit(&argc, null)
-    glutInitDisplayMode(noCheck(GLUT_DOUBLE | GLUT_RGB))
+    glutInitDisplayMode(noCheck(GLUT_DOUBLE | GLUT_RGBA))
     return WINDOW_PTR
 }
 
