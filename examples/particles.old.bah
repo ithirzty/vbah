@@ -1,7 +1,6 @@
 /////////////////////////////////////////////////////////////
 //   Particles system demo using OpenGL and GLUT in Bah.   //
-//    This version of the demo uses the update system.     //
-//       To compile, use 'bah ./particles.bah -d'.         //
+//      To compile, use 'bah ./particles.old.bah -d'.      //
 //                                                         //
 //                                     © Aloïs Laurent Boë //
 /////////////////////////////////////////////////////////////
@@ -22,7 +21,6 @@ randFloat() float {
     return f
 }
 
-gravity = 5.0
 
 //Representation of a single particle.
 struct part {
@@ -83,15 +81,11 @@ struct part {
         }
     }
 
-    update(d float) {
-        this.velY = this.velY - gravity * d
-        this.x = this.x + this.velX * d
-        this.y = this.y + this.velY * d
-        this.collideBorders()
-    }
-
     //Used for drawing the particle.
     draw() {
+        this.x = this.x + this.velX * win.delta
+        this.y = this.y + this.velY * win.delta
+        this.collideBorders()
         drawCircle(vec(this.x, this.y), this.radius, rgb(this.r, this.g, this.b))
     }
 
@@ -99,43 +93,13 @@ struct part {
 
 //A wrapper for the whole particle system.
 struct ps {
+    gravity: float = 5.0
     globalRad: float = 0.02
     nbParts: int = 20
     parts: []part*
     lastNB: int
-    
-    update(d float) {
-        wasNull = 0
-        firstNull = 0
-        i=0; for i < this.lastNB {
-            p = this.parts[i]
-            if p == null {
-                if wasNull == 0 {
-                    firstNull = i
-                    wasNull = 1
-                }
-                i = i + 1
-                continue
-            } else {
-                wasNull = 2
-            }
-            p.update(d)
-            j=i+1; for j < this.lastNB {
-                p1 = this.parts[j]
-                if p1 == null {
-                    j = j + 1
-                    continue
-                }
-                p.collide(p1)
-                j = j + 1
-            }
-            i = i + 1
-        }
-        if wasNull == 1 {
-            this.lastNB = firstNull
-        }
-    }
 
+    
     //Used for initiating the particle system.
     init() {
         this.lastNB = this.nbParts
@@ -150,7 +114,6 @@ struct ps {
             this.parts[i] = p
             i = i + 1
         }
-        initUpdateObj(this)
     }
 
     //Used for adding a particle.
@@ -205,13 +168,41 @@ struct ps {
         }
     }
 
+    nbCol: int
+
     //Used for colliding and drawing every particles.
     draw() {
-        i=0; for i < len(this.parts), i++ {
-            if this.parts[i] == null {
+        this.nbCol = 0
+        wasNull = 0
+        firstNull = 0
+        i=0; for i < this.lastNB {
+            p = this.parts[i]
+            if p == null {
+                if wasNull == 0 {
+                    firstNull = i
+                    wasNull = 1
+                }
+                i = i + 1
                 continue
+            } else {
+                wasNull = 2
             }
-            this.parts[i].draw()
+            p.velY = p.velY - this.gravity * win.delta
+            j=i+1; for j < this.lastNB {
+                p1 = this.parts[j]
+                if p1 == null {
+                    j = j + 1
+                    continue
+                }
+                this.nbCol = this.nbCol + 1
+                p.collide(p1)
+                j = j + 1
+            }
+            p.draw()
+            i = i + 1
+        }
+        if wasNull == 1 {
+            this.lastNB = firstNull
         }
     }
 
@@ -224,6 +215,9 @@ lastPart int
 
 //Called on each frame.
 display() {
+
+    //Notice of new version.
+
     //Adding a particle evry second.
     if particles.nbParts < 20 && getTimeUnix() - lastPart > 1000000000 {
         particles.add(1, 0.0, 0.0, 0.055)
@@ -237,7 +231,7 @@ display() {
     //16px from the top
     tp = vec(0.0, 16.0)
     pixelsToCoords(&tp)
-    textFont.write(tp, rgb(1.0, 1.0, 1.0), intToStr(win.fps())+" fps\n"+intToStr(particles.nbParts)+" particles\n")
+    textFont.write(tp, rgb(1.0, 1.0, 1.0), intToStr(win.fps())+" fps\n"+intToStr(particles.nbParts)+" particles\n"+intToStr(particles.nbCol)+" col/frame")
 
     tp = vec(0.0, <float>win.height - 20.0)
     pixelsToCoords(&tp)
@@ -269,10 +263,10 @@ kb(key char, mod int) {
     if key == 'f' {
         win.fullscreen()
     } else if key == 'g' {
-        if gravity == 0.0 {
-            gravity = 5.0
+        if particles.gravity == 0.0 {
+            particles.gravity = 5.0
         } else {
-            gravity = 0.0
+            particles.gravity = 0.0
         }
     }
 }
@@ -281,8 +275,6 @@ init() {
     textFont = font{antialiased: true}
     textFont.load("./assets/font/DroidSansMono.ttf")
     textFont.setSize(16)
-
-    initUpdater()
 }
 
 main(args []cpstring) int {

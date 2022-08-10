@@ -23,6 +23,7 @@ VBAH_internals = VBAH_internals{}
 #include "./src/animate.bah"
 #include "./src/sound.bah"
 #include "./src/clipping.bah"
+#include "./src/updater.bah"
 
 
 

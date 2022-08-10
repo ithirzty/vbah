@@ -1,0 +1,65 @@
+#import "time.bah"
+
+//Internal structure used for representing every pending update methods.
+struct updateFn {
+    obj: ptr
+    fn: function(ptr, float)
+}
+
+//Every pending update functions
+updaterFuncs = []updateFn
+//Is the updater initialized
+updaterInitialized = false
+
+//To initialize the update method of an object.
+//Use it on a structure that has a method as such: .update(delta float) .
+//Do not use this function on objects that may be deallocated. 
+initUpdateObj(o <any>) {
+    updaterFuncs[len(updaterFuncs)] = updateFn {
+        obj: o
+        fn: <ptr>o.update
+    }
+}
+
+//To initialize an update function.
+//Use it on a function that is declared as such: myUpdateFunc(delta float) .
+initUpdateFn(o <any>) {
+    updaterFuncs[len(updaterFuncs)] = updateFn {
+        obj: null
+        fn: <ptr>o
+    }
+}
+
+//Internal function that calculates delta and calls every update function.
+updaterWorker() {
+    ld float = getTimeUnix()
+    nd = ld
+    d = 0.0
+    div = 1.0 / 1000000000.0
+
+    for 1==1 {
+        d = (nd - ld) * div
+        ld = nd
+        i=0; for i < len(updaterFuncs), i++ {
+            if updaterFuncs[i].obj != null {
+                fn = updaterFuncs[i].fn
+                fn(updaterFuncs[i].obj, d)
+            } else {
+                fn function(float) = updaterFuncs[i].fn
+                fn(d)
+            }
+        }
+        nd = <float>getTimeUnix()
+    }
+}
+
+//Initializes the updater.
+//Must be called at the beggining of the program, ideally called in window.init().
+//If this is not called, update functions will not be called.
+initUpdater() {
+    if updaterInitialized == true {
+        return
+    }
+    updaterInitialized = true
+    async updaterWorker()
+}
