@@ -112,7 +112,7 @@ struct font {
             w = bitmap.width
             h = bitmap.rows
             
-            bmp cpstring
+            bmp char*
             //if texture found use it
             i=0; for i < len(this.bitmaps), i++ {
                 ctt = this.bitmaps[i]
@@ -138,6 +138,10 @@ struct font {
                     c: c
                     b: data
                 }
+            }
+
+            if bmp == null {
+                return
             }
             
             //drawing the texture

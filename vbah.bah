@@ -1,6 +1,10 @@
 #include "iostream.bah"
 #include "time.bah"
 
+#static {
+    #warning "You may need to compile the program as a dynamic executable (-d)."
+}
+
 //For internal functions handling (because each component cannot access the window structure).
 struct VBAH_internals {
     //the view port

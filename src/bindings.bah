@@ -6,13 +6,8 @@
 #include "<ft2build.h>"
 #include "<freetype/freetype.h>"
 
-
 #linux {
     #cLib "lGL" "lglut" "lGLU" "w $(pkg-config --libs freetype2) $(pkg-config --cflags freetype2)"
-
-    #static {
-        #warning "You may need to compile the program as a dynamic executable (-d)."
-    }
 }
 
 #windows {
