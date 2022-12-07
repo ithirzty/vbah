@@ -26,7 +26,7 @@ BMPtoTex(path cpstring, w int, h int) GLuint {
     glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_MAG_FILTER), noCheck(GL_LINEAR))
     glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_WRAP_S), noCheck(GL_REPEAT))
     glTexParameterf(noCheck(GL_TEXTURE_2D), noCheck(GL_TEXTURE_WRAP_T), noCheck(GL_REPEAT))
-    gluBuild2DMipmaps(noCheck(GL_TEXTURE_2D), 3, w, h, noCheck(GL_RGB), noCheck(GL_UNSIGNED_BYTE), arrAsStr(data))
+    gluBuild2DMipmaps(noCheck(GL_TEXTURE_2D), 3, w, h, noCheck(GL_RGB), noCheck(GL_UNSIGNED_BYTE), cArr(data))
     return texture
 }
 

@@ -45,7 +45,7 @@ updaterWorker() {
                 fn = updaterFuncs[i].fn
                 fn(updaterFuncs[i].obj, d)
             } else {
-                fn function(float) = updaterFuncs[i].fn
+                fn = <function(float)>updaterFuncs[i].fn
                 fn(d)
             }
         }

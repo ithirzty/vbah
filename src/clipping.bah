@@ -6,7 +6,7 @@ struct clipPlane {
 
     //Sets the clip plane.
     //the coords argument is a tuple [left, bottom, right, top] in pixels coordinates.
-    clip(coords tuple:4:int) {
+    clip(coords [int,int,int,int]) {
         this.wasEnabled = glIsEnabled(noCheck(GL_SCISSOR_TEST))
         if this.wasEnabled == false {
             glEnable(noCheck(GL_SCISSOR_TEST))

@@ -241,7 +241,7 @@ display() {
 
     tp = vec(0.0, <float>win.height - 20.0)
     pixelsToCoords(&tp)
-    textFont.write(tp, rgb(0.8, 0.8, 0.8), "Press 'f' to toggle fullscreen.\nPress 'g' to toggle gravity.")
+    textFont.write(tp, rgb(1.0, 1.0, 1.0), "Press 'f' to toggle fullscreen.\nPress 'g' to toggle gravity.")
 
 }
 

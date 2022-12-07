@@ -108,7 +108,7 @@ struct font {
             }
             bitmap = new FT_Bitmap_
             *bitmap = noCheck(slot->bitmap)
-            raw cpstring = noCheck(bitmap->buffer)
+            raw char* = noCheck(bitmap->buffer)
             w = bitmap.width
             h = bitmap.rows
             
@@ -129,7 +129,9 @@ struct font {
                 cR = bitmap.pitch * h
                 row=0; for row < h, row++ {
                     col=0; for col < bitmap.pitch, col++ {
-                        data[cR + col] = raw[col + (row * bitmap.pitch)]
+                        rInd = col + row * bitmap.pitch
+                        rawC = <char*>(<int>raw + rInd)
+                        data[cR + col] = *rawC
                     }
                     cR -= bitmap.pitch
                 }
@@ -149,7 +151,7 @@ struct font {
             ay int = noCheck(slot->advance.y)
 
             originY int = 0 - (<int>noCheck(slot->bitmap_top) - <int>noCheck(slot->bitmap.rows)) / 2
-            glBitmap(w, h, 0 - noCheck(slot->bitmap_left),
+            glBitmap(w, h, 0 - <int>noCheck(slot->bitmap_left),
                 originY,
                 (ax>>6), (ay>>6), <ptr>bmp)
     }
@@ -167,7 +169,7 @@ struct font {
             }
             bitmap = new FT_Bitmap_
             *bitmap = noCheck(slot->bitmap)
-            raw cpstring = noCheck(bitmap->buffer)
+            raw char* = noCheck(bitmap->buffer)
             w = bitmap.width
             h = bitmap.rows
 
@@ -204,12 +206,13 @@ struct font {
                     x=0; for x < w, x++ {
                         ind = y * (w * 4) + x * 4
                         iy = h - y - 1
-                        a byte = raw[iy * bitmap.pitch + x]
+                        rInd = iy * bitmap.pitch + x
+                        a byte* = <char*>(<int>raw + rInd)
                         
                         bmp[ind]   = <char>(<float>color.r * 255.0)
                         bmp[ind+1] = <char>(<float>color.g * 255.0)
                         bmp[ind+2] = <char>(<float>color.b * 255.0)
-                        bmp[ind+3] = <char>a
+                        bmp[ind+3] = <char>*a
                     }
                 }
                 glGenTextures(1, &texture)
@@ -351,7 +354,7 @@ struct font {
 
     //Calculates the width of specified text.
     //Returns the value in pixels.
-    calcWidth(s cpstring) int {
+    calcWidth(str cpstring) int {
         if this.charSize == -1 {
             panic("error writting text to frame, font size is not set. Use .setSize().")
         }
@@ -361,7 +364,6 @@ struct font {
         pen_y = 200
         glyph_index = 0
         slot FT_GlyphSlot = noCheck(faceDP->glyph)
-        str = strAsArr(s)
         width = 0
         max = 0
         isFirst = true
@@ -392,7 +394,7 @@ struct font {
                 width += <int>(<float>bitmap.width * antiAliasedScaleFactor)
             }
 
-            ax int = noCheck(slot->advance.x) >> 6
+            ax int = <int>noCheck(slot->advance.x) >> 6
             if this.antialiased == true {
                 ax = <int>(<float>ax * antiAliasedScaleFactor)
             }
