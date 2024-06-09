@@ -313,7 +313,7 @@ struct particleSystem extend elem {
 partSys = particleSystem{}
 
 //draws text centered
-drawTextCentered(p vec, str cpstring, color rgb) {
+drawTextCentered(p vec, str str, color rgb) {
     size = vec(<float>f.calcWidth(str), 0.)
     pixelsDimToCoords(&size)
     f.write(vec(p.x - size.x / 2.0, p.y), color, str)
@@ -584,7 +584,7 @@ click(btn int, pressed bool, x int, y int) {
     }
 }
 
-main(args []cpstring) int {
+main(args []str) int {
     //makes a window and launch it
     win = window(800, 600, "Test")
     win.display = display

@@ -46,7 +46,7 @@ struct window {
     height: int
     x: int
     y: int
-    title: cpstring
+    title: str
     autoClear: bool = true
     autoLoop: bool = true
 
@@ -118,7 +118,7 @@ struct window {
         nltd float = getTimeUnix()
         delta = nltd - this.lastTimeDelta
         this.lastTimeDelta = nltd
-        delta = delta / 1000000000.0
+        delta /= 1000000000.0
         this.delta = delta
     }
 
@@ -254,7 +254,7 @@ __VBAH_resize(w int, h int) {
 }
 
 //Used for making a window.
-window(w int, h int, t cpstring) window* {
+window(w int, h int, t str) window* {
     WINDOW_PTR.width = w
     WINDOW_PTR.height = h
     WINDOW_PTR.title = t

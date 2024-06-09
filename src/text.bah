@@ -67,7 +67,7 @@ struct font {
     }
 
     //Loads the font at the specified path.
-    load(path cpstring) {
+    load(path str) {
         if this.face != null {
             FT_Done_Face(this.face)
         }
@@ -266,7 +266,7 @@ struct font {
 
     //Write some text at the specified position with the specified color.
     //You will need to call .setSize() at least once before calling this function.
-    write(pos vec, color rgb, str cpstring) {
+    write(pos vec, color rgb, str str) {
         setDrawingColor(color)
         if this.charSize == -1 {
             panic("error writting text to frame, font size is not set. Use .setSize().")
@@ -300,7 +300,7 @@ struct font {
     //Write some text at the specified position with the specified markup.
     //You will need to call .setSize() at least once before calling this function.
     //The string printed also starts at the specified offset.
-    writeMarkup(pos vec, colors []textMarkup, offset int, str cpstring) {
+    writeMarkup(pos vec, colors []textMarkup, offset int, str str) {
         if this.charSize == -1 {
             panic("error writting text to frame, font size is not set. Use .setSize().")
         }
@@ -354,7 +354,7 @@ struct font {
 
     //Calculates the width of specified text.
     //Returns the value in pixels.
-    calcWidth(str cpstring) int {
+    calcWidth(str str) int {
         if this.charSize == -1 {
             panic("error writting text to frame, font size is not set. Use .setSize().")
         }

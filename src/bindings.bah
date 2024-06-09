@@ -22,7 +22,7 @@
 
     #cLib "lopengl32"  "lGLU32" "Wl,--subsystem,windows"
 
-    #define! playSound(p cpstring, hmod int, fdwSound ptr) bool
+    #define! playSound(p str, hmod int, fdwSound ptr) bool
 
 }
 
@@ -39,7 +39,7 @@
 #define! glutInitDisplayMode(dm ptr)
 #define! glutInitWindowSize(w int,h int)
 #define! glutInitWindowPosition(x int,y int)
-#define! glutCreateWindow(t cpstring)
+#define! glutCreateWindow(t str)
 #define! glutDisplayFunc(f function())
 #define! glutIdleFunc(f function())
 #define! glutPostRedisplay()
@@ -58,14 +58,14 @@
 #define! glEnd()
 #define! glColor3f(r float, g float, b float) 
 #define! glRasterPos2f(x float, y float)
-#define! glutBitmapString(font ptr, str cpstring)
+#define! glutBitmapString(font ptr, str str)
 #define! glEnable(m ptr)
 #define! glDisable(m ptr)
 #define! glGenTextures(i int, t GLuint*)
 #define! glBindTexture(tm ptr, t GLuint)
 #define! glTexEnvf(tenv ptr, tm ptr, mod ptr)
 #define! glTexParameterf(tm ptr, mn ptr, mv ptr)
-#define! gluBuild2DMipmaps(tm ptr, nb int, w int, h int, colors ptr, cont ptr, data cpstring)
+#define! gluBuild2DMipmaps(tm ptr, nb int, w int, h int, colors ptr, cont ptr, data str)
 #define! glTexCoord2f(x float, y float)
 #define! glutMouseFunc(f ptr)
 #define! glutMotionFunc(f ptr)
@@ -115,7 +115,7 @@
 #define! FT_GlyphSlot ptr
 
 #define! FT_Init_FreeType(l FT_Library*) int
-#define! FT_New_Face(l FT_Library, p cpstring, i int, f FT_Face*) int
+#define! FT_New_Face(l FT_Library, p str, i int, f FT_Face*) int
 #define! FT_Done_Face(f FT_Face*)
 #define! FT_Set_Char_Size(f FT_Face, w int, h int, resH int, resV int) int
 #define! FT_Set_Pixel_Sizes(f FT_Face, w int, h int)

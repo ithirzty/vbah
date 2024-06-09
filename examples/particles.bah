@@ -77,7 +77,7 @@ struct part {
             }
             this.velX = this.velX + velX * 0.4
             this.velY = this.velY + velY * 0.4
-            sumRad = sumRad + 0.0001
+            sumRad += 0.0001
             this.x = p.x + sumRad * velX
             this.y = p.y + sumRad * velY
         }
@@ -114,7 +114,7 @@ struct ps {
                     firstNull = i
                     wasNull = 1
                 }
-                i = i + 1
+                i++
                 continue
             } else {
                 wasNull = 2
@@ -123,13 +123,13 @@ struct ps {
             j=i+1; for j < this.lastNB {
                 p1 = this.parts[j]
                 if p1 == null {
-                    j = j + 1
+                    j++
                     continue
                 }
                 p.collide(p1)
-                j = j + 1
+                j++
             }
-            i = i + 1
+            i++
         }
         if wasNull == 1 {
             this.lastNB = firstNull
@@ -148,7 +148,7 @@ struct ps {
             p.g = randFloat()
             p.b = randFloat()
             this.parts[i] = p
-            i = i + 1
+            i++
         }
         initUpdateObj(this)
     }
@@ -175,14 +175,14 @@ struct ps {
                     this.parts[j] = p
                     break
                 }
-                j = j + 1
+                j++
             }
             if placed == false {
                 this.parts[len(this.parts)] = p
                 this.lastNB = len(this.parts)
             }
             this.nbParts = this.nbParts + 1
-            i = i + 1
+            i++
         }
     }
 
@@ -191,7 +191,7 @@ struct ps {
         i=0; for i < len(this.parts) {
             p = this.parts[i]
             if p == null {
-                i = i + 1
+                i++
                 continue
             }
             distX = x - p.x
@@ -201,7 +201,7 @@ struct ps {
                 this.parts[i] = null
                 this.nbParts = this.nbParts - 1
             }
-            i = i + 1
+            i++
         }
     }
 
@@ -285,7 +285,7 @@ init() {
     initUpdater()
 }
 
-main(args []cpstring) int {
+main(args []str) int {
     //particle system
     particles = ps{}
     particles.globalRad = 0.055

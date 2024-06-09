@@ -63,7 +63,7 @@ init() {
     }
 }
 
-main(args []cpstring) int {
+main(args []str) int {
     //launching the window
     
     win = window(600, 600, "Text")

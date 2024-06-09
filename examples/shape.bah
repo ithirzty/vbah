@@ -28,7 +28,7 @@ struct userShape {
     drawPoints() {
         i=0; for i < len(this.shape) {
             drawCircle(vec(this.shape[i], this.shape[i+1]), 0.02, rgb(1.0, 0.0, 0.0))
-            i = i + 2
+            i += 2
         }
     }
 
@@ -72,7 +72,7 @@ click(btn int, pressed bool, x int, y int) {
     }
 }
 
-main(args []cpstring) int {
+main(args []str) int {
     //launching the window
     
     win = window(600, 600, "Shape")

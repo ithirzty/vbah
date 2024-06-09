@@ -1,11 +1,11 @@
 #import "exec.bah"
 
-#define! system(s cpstring) int
+#define! system(s str) int
 
 //A wrapper for playing sounds.
 //Warning, this is in early developpement and really slow.
 struct sound {
-    path: cpstring
+    path: str
     channel: chan:bool
 
     //Internal function, do not call.
@@ -25,7 +25,7 @@ struct sound {
     }
 
     //Loads a sound by path.
-    load(path cpstring) {
+    load(path str) {
         this.path = path
         this.channel = chan bool
         async this.worker()

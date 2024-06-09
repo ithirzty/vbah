@@ -1,5 +1,5 @@
 //Used for opennning a BMP file and transforming it into a texture.
-BMPtoTex(path cpstring, w int, h int) GLuint {
+BMPtoTex(path str, w int, h int) GLuint {
     texture GLuint
     fs = fileStream{}
     fs.open(path, "rb")
@@ -116,7 +116,7 @@ rgb(r float, g float, b float) rgb {
 }
 
 //Used for making a rgb structure with a structure.
-rgbTexture(path cpstring, w int, h int) rgb {
+rgbTexture(path str, w int, h int) rgb {
     c = rgb{
         isTex: true
         tex: BMPtoTex(path, w, h)

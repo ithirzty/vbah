@@ -40,7 +40,7 @@ minCoords(v vec*, shape []float) {
         if shape[i+1] < v.y {
             v.y = shape[i+1]
         }
-        i = i + 2
+        i += 2
     }
 }
 
@@ -58,6 +58,6 @@ maxCoords(v vec*, shape []float) {
         if shape[i+1] > v.y {
             v.y = shape[i+1]
         }
-        i = i + 2
+        i += 2
     }
 }
