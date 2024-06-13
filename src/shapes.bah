@@ -6,8 +6,6 @@ translateShape(v vec, shape []float) {
     }
 }
 
-#define centerCoords(v vec*, shape []float)
-
 //Used for generating a circle from a shape.
 circleFromShape(v vec*, rad float*, shape []float) {
     centerCoords(v, shape)
